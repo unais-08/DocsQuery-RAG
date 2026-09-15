@@ -1,5 +1,4 @@
 import bcrypt from 'bcryptjs';
-import { Prisma } from '@prisma/client';
 import jwt, { type SignOptions } from 'jsonwebtoken';
 import { env } from '../../config/env.js';
 import { prisma } from '../../config/prisma.js';
@@ -53,9 +52,12 @@ export const register = async (input: {
 
     return { user: toPublicUser(user), token: createToken(user.id) };
   } catch (error) {
-    if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2002') {
+    const prismaError = error as { code?: string } | null;
+
+    if (prismaError && prismaError.code === 'P2002') {
       throw new AuthError('An account with this email already exists', 409, 'EMAIL_IN_USE');
     }
+
     throw error;
   }
 };

@@ -1,3 +1,5 @@
+"use client";
+
 import {
     FileText,
     HardDrive,
@@ -6,6 +8,7 @@ import {
 } from "lucide-react";
 
 import { StatCard } from "@/components/dashboard/stats-card";
+import { useAuth } from "@/context/auth-context";
 
 const recentDocuments = [
     {
@@ -32,19 +35,19 @@ const recentDocuments = [
 ];
 
 export default function DashboardPage() {
+    const { user } = useAuth();
+    const displayName = user?.name?.split(" ")[0] ?? "there";
+
     return (
         <div className="mx-auto max-w-7xl">
-
-            {/* Header */}
             <div className="flex flex-col justify-between gap-4 sm:flex-row sm:items-center">
-
                 <div>
                     <h1 className="text-2xl font-bold tracking-tight text-gray-950">
-                        Welcome back, Unais 👋
+                        Welcome back, {displayName} 👋
                     </h1>
 
                     <p className="mt-1 text-sm text-gray-500">
-                        Here's what's happening with your documents.
+                        Here&apos;s what&apos;s happening with your documents.
                     </p>
                 </div>
 
@@ -55,12 +58,9 @@ export default function DashboardPage() {
                     <Upload size={17} />
                     Upload document
                 </button>
-
             </div>
 
-            {/* Stats */}
             <div className="mt-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-
                 <StatCard
                     title="Documents"
                     value="12"
@@ -81,14 +81,10 @@ export default function DashboardPage() {
                     description="Of 100 MB available"
                     icon={<HardDrive size={20} />}
                 />
-
             </div>
 
-            {/* Recent Documents */}
             <div className="mt-8 rounded-2xl border border-gray-200 bg-white shadow-docs-card">
-
                 <div className="flex items-center justify-between border-b border-gray-100 px-5 py-4">
-
                     <div>
                         <h2 className="font-semibold text-gray-950">
                             Recent documents
@@ -105,19 +101,15 @@ export default function DashboardPage() {
                     >
                         View all
                     </button>
-
                 </div>
 
                 <div className="divide-y divide-gray-100">
-
                     {recentDocuments.map((document) => (
                         <div
                             key={document.name}
                             className="flex items-center justify-between gap-4 px-5 py-4 transition hover:bg-gray-50"
                         >
-
                             <div className="flex min-w-0 items-center gap-3">
-
                                 <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-brand-50 text-brand-600">
                                     <FileText size={19} />
                                 </div>
@@ -128,22 +120,16 @@ export default function DashboardPage() {
                                     </p>
 
                                     <p className="mt-0.5 text-xs text-gray-400">
-                                        {document.type} · {document.size} ·{" "}
-                                        {document.uploaded}
+                                        {document.type} · {document.size} · {document.uploaded}
                                     </p>
                                 </div>
-
                             </div>
 
                             <StatusBadge status={document.status} />
-
                         </div>
                     ))}
-
                 </div>
-
             </div>
-
         </div>
     );
 }
@@ -157,10 +143,9 @@ function StatusBadge({
 
     return (
         <span
-            className={`shrink-0 rounded-full px-2.5 py-1 text-xs font-medium ${ready
-                    ? "bg-green-50 text-green-700"
-                    : "bg-blue-50 text-blue-700"
-                }`}
+            className={`shrink-0 rounded-full px-2.5 py-1 text-xs font-medium ${
+                ready ? "bg-green-50 text-green-700" : "bg-blue-50 text-blue-700"
+            }`}
         >
             {status}
         </span>

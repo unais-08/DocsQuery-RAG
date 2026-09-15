@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { FileQuestion, Home, ArrowLeft } from "lucide-react";
+import { FileQuestion, Home } from "lucide-react";
 
 export default function DashboardNotFound() {
     return (
@@ -21,8 +21,8 @@ export default function DashboardNotFound() {
                 </h1>
 
                 <p className="mx-auto mt-3 max-w-sm text-sm leading-6 text-gray-500">
-                    Sorry, we couldn't find the page you're looking for.
-                    It may have been moved or doesn't exist anymore.
+                    Sorry, we couldn&apos;t find the page you&apos;re looking for.
+                    It may have been moved or doesn&apos;t exist anymore.
                 </p>
 
                 {/* Actions */}
