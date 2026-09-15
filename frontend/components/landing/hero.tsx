@@ -1,4 +1,3 @@
-
 import Link from "next/link";
 import {
     ArrowRight,
@@ -15,25 +14,41 @@ export function Hero() {
             <div className="pointer-events-none absolute -left-40 -top-40 h-96 w-96 rounded-full bg-brand-200/40 blur-3xl" />
             <div className="pointer-events-none absolute -right-40 top-20 h-96 w-96 rounded-full bg-blue-200/40 blur-3xl" />
 
-            <div className="relative mx-auto grid max-w-7xl gap-16 px-4 pb-20 pt-16 sm:px-6 lg:grid-cols-2 lg:items-center lg:px-8 lg:pb-28 lg:pt-24">
+            <div className="relative mx-auto grid max-w-7xl gap-16 px-4 pb-20 pt-16 sm:px-6 lg:grid-cols-2 lg:items-center lg:px-8 lg:pb-28 lg:pt-20">
 
                 {/* Left */}
                 <div className="text-center lg:text-left">
-                    <div className="inline-flex items-center gap-2 rounded-full border border-brand-200 bg-brand-50 px-3 py-1.5 text-sm font-medium text-brand-700">
+                    <div className="inline-flex items-center gap-2 rounded-full border border-brand-200 bg-brand-50 px-3  text-sm font-medium text-brand-700">
                         <Sparkles size={15} />
                         AI-powered document Q&A
                     </div>
 
-                    <h1 className="mt-6 text-4xl font-bold tracking-tight text-gray-950 sm:text-5xl lg:text-6xl">
-                        Ask your documents
-                        <br />
-                        <span className="text-brand-600">anything.</span>
+                    <h1 className="mt-6 text-4xl font-bold leading-[1.1] tracking-tight text-gray-950 sm:text-5xl lg:text-[3.4rem]">
+                        Ask your documents{" "}
+                        <span className="relative inline-block whitespace-nowrap">
+                            anything
+                            <svg
+                                viewBox="0 0 200 14"
+                                preserveAspectRatio="none"
+                                className="absolute -bottom-2 left-0 h-3 w-full text-brand-400"
+                                aria-hidden="true"
+                            >
+                                <path
+                                    d="M2 9.5C40 3 90 2 100 6C110 10 160 11 198 4.5"
+                                    fill="none"
+                                    stroke="currentColor"
+                                    strokeWidth="4"
+                                    strokeLinecap="round"
+                                />
+                            </svg>
+                        </span>.
                     </h1>
 
                     <p className="mx-auto mt-6 max-w-xl text-base leading-7 text-gray-600 sm:text-lg lg:mx-0">
                         Upload your PDFs, notes, and documents. Ask questions
                         in natural language and get accurate, source-backed
-                        answers in seconds.
+                        answers in seconds — no more digging through pages
+                        to find what you need.
                     </p>
 
                     {/* Buttons */}
@@ -42,7 +57,7 @@ export function Hero() {
                             href="/register"
                             className="inline-flex h-12 items-center justify-center gap-2 rounded-xl bg-brand-600 px-6 text-sm font-semibold text-white shadow-xl shadow-brand-600/20 transition hover:bg-brand-700"
                         >
-                            Let's Get started
+                            Let's get started
                             <ArrowRight size={17} />
                         </Link>
 
@@ -60,6 +75,8 @@ export function Hero() {
                         <TrustItem text="Private documents" />
                         <TrustItem text="Easy to use" />
                     </div>
+
+
                 </div>
 
                 {/* Right product preview */}
@@ -207,3 +224,13 @@ function TrustItem({ text }: { text: string }) {
     );
 }
 
+function Stat({ value, label }: { value: string; label: string }) {
+    return (
+        <div className="text-center lg:text-left">
+            <p className="text-xl font-bold text-gray-950 sm:text-2xl">
+                {value}
+            </p>
+            <p className="mt-0.5 text-xs text-gray-500">{label}</p>
+        </div>
+    );
+}
