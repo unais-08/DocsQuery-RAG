@@ -64,13 +64,6 @@ export function UserMenu() {
                         Profile
                     </button>
 
-                    <button
-                        type="button"
-                        className="flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-sm text-gray-600 hover:bg-gray-50"
-                    >
-                        <Settings size={17} />
-                        Settings
-                    </button>
 
                     <button
                         type="button"
