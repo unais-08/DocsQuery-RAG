@@ -110,7 +110,7 @@ export default function DashboardPage() {
                             className="flex items-center justify-between gap-4 px-5 py-4 transition hover:bg-gray-50"
                         >
                             <div className="flex min-w-0 items-center gap-3">
-                                <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-brand-50 text-brand-600">
+                                <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-brand-50 text-red-600">
                                     <FileText size={19} />
                                 </div>
 
