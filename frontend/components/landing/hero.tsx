@@ -172,7 +172,7 @@ export function Hero() {
                                             <div className="flex items-center gap-2 rounded-lg bg-white px-3 py-2 text-xs text-gray-600">
                                                 <FileText
                                                     size={14}
-                                                    className="text-brand-600"
+                                                    className="text-red-500"
                                                 />
                                                 research-paper.pdf · Page 12
                                             </div>
@@ -180,7 +180,7 @@ export function Hero() {
                                             <div className="flex items-center gap-2 rounded-lg bg-white px-3 py-2 text-xs text-gray-600">
                                                 <FileText
                                                     size={14}
-                                                    className="text-brand-600"
+                                                    className="text-red-500"
                                                 />
                                                 methodology.pdf · Page 8
                                             </div>

@@ -6,15 +6,12 @@ export default function RegisterPage() {
     return (
         <AuthShell mode="register">
             <div>
-                <h1 className="text-3xl font-bold tracking-tight text-gray-950 sm:text-[2.15rem]">
+                <h1 className="text-2xl font-bold tracking-tight text-gray-950">
                     Create your account
                 </h1>
-                <p className="mt-2 text-sm leading-6 text-gray-500">
-                    Start turning your documents into knowledge.
-                </p>
             </div>
 
-            <form className="mt-8 space-y-4">
+            <form className="mt-6 space-y-4">
                 <AuthInput
                     label="Full name"
                     name="name"
@@ -33,20 +30,16 @@ export default function RegisterPage() {
                     placeholder="Create a password"
                 />
 
-
-
                 <button
                     type="submit"
                     className="h-11 w-full rounded-xl bg-brand-600 text-sm font-semibold text-white shadow-lg shadow-brand-600/20 transition hover:bg-brand-700 active:scale-[0.99]"
                 >
                     Create account
                 </button>
-
-
             </form>
 
-            <Divider />
-
+            {/* <Divider /> */}
+            {/* <SocialButtons /> */}
         </AuthShell>
     );
 }

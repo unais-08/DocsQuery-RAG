@@ -1,4 +1,3 @@
-import Link from "next/link";
 import { AuthShell } from "@/components/auth/auth-shell";
 import { AuthInput } from "@/components/auth/auth-input";
 import { SocialButtons } from "@/components/auth/social-buttons";
@@ -7,15 +6,12 @@ export default function LoginPage() {
     return (
         <AuthShell mode="login">
             <div>
-                <h1 className="text-3xl font-bold tracking-tight text-gray-950 sm:text-[2.15rem]">
+                <h1 className="text-2xl font-bold tracking-tight text-gray-950">
                     Welcome back
                 </h1>
-                <p className="mt-2 text-sm leading-6 text-gray-500">
-                    Sign in to continue to your DocsQuery workspace.
-                </p>
             </div>
 
-            <form className="mt-8 space-y-4">
+            <form className="mt-6 space-y-4">
                 <AuthInput
                     label="Email address"
                     name="email"
@@ -23,13 +19,11 @@ export default function LoginPage() {
                     placeholder="you@example.com"
                 />
 
-                {/* Single AuthInput — action prop puts Forgot password in the label row */}
                 <AuthInput
                     label="Password"
                     name="password"
                     type="password"
                     placeholder="Enter your password"
-                   
                 />
 
                 <button
@@ -39,9 +33,9 @@ export default function LoginPage() {
                     Sign in
                 </button>
             </form>
-
+            {/* 
             <Divider />
-            <SocialButtons />
+            <SocialButtons /> */}
         </AuthShell>
     );
 }

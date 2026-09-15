@@ -2,7 +2,7 @@ import type { ReactNode } from "react";
 
 export default function AuthLayout({ children }: { children: ReactNode }) {
     return (
-        <main className="h-[100dvh] overflow-hidden bg-[radial-gradient(circle_at_top_left,#ede9fe_0%,#fafbff_35%,#ffffff_100%)]">
+        <main className="flex min-h-screen items-center justify-center bg-gray-50 px-4 py-10">
             {children}
         </main>
     );
