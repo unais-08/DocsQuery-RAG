@@ -57,7 +57,7 @@ export function Hero() {
                             href="/register"
                             className="inline-flex h-12 items-center justify-center gap-2 rounded-xl bg-brand-600 px-6 text-sm font-semibold text-white shadow-xl shadow-brand-600/20 transition hover:bg-brand-700"
                         >
-                            Let's get started
+                            Let&apos;s get started
                             <ArrowRight size={17} />
                         </Link>
 
@@ -224,13 +224,3 @@ function TrustItem({ text }: { text: string }) {
     );
 }
 
-function Stat({ value, label }: { value: string; label: string }) {
-    return (
-        <div className="text-center lg:text-left">
-            <p className="text-xl font-bold text-gray-950 sm:text-2xl">
-                {value}
-            </p>
-            <p className="mt-0.5 text-xs text-gray-500">{label}</p>
-        </div>
-    );
-}

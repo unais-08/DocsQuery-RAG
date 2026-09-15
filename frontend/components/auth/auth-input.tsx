@@ -9,7 +9,11 @@ interface AuthInputProps {
     type?: "text" | "email" | "password";
     placeholder: string;
     name: string;
-    action?: ReactNode; // ← new: renders right-aligned in the label row
+    value?: string;
+    onChange?: (event: React.ChangeEvent<HTMLInputElement>) => void;
+    autoComplete?: string;
+    disabled?: boolean;
+    action?: ReactNode;
 }
 
 export function AuthInput({
@@ -17,6 +21,10 @@ export function AuthInput({
     type = "text",
     placeholder,
     name,
+    value,
+    onChange,
+    autoComplete,
+    disabled,
     action,
 }: AuthInputProps) {
     const [showPassword, setShowPassword] = useState(false);
@@ -26,7 +34,6 @@ export function AuthInput({
 
     return (
         <div className="space-y-1.5">
-            {/* Label row — only renders if label text OR action is provided */}
             {(label || action) && (
                 <div className="flex items-center justify-between">
                     {label && (
@@ -37,9 +44,7 @@ export function AuthInput({
                             {label}
                         </label>
                     )}
-                    {action && (
-                        <span className="ml-auto">{action}</span>
-                    )}
+                    {action && <span className="ml-auto">{action}</span>}
                 </div>
             )}
 
@@ -49,7 +54,11 @@ export function AuthInput({
                     name={name}
                     type={inputType}
                     placeholder={placeholder}
-                    className="h-11 w-full rounded-xl border border-gray-200 bg-white px-4 text-sm text-gray-900 outline-none transition placeholder:text-gray-400 focus:border-brand-500 focus:ring-4 focus:ring-brand-500/10"
+                    value={value}
+                    onChange={onChange}
+                    autoComplete={autoComplete}
+                    disabled={disabled}
+                    className="h-11 w-full rounded-xl border border-gray-200 bg-white px-4 text-sm text-gray-900 outline-none transition placeholder:text-gray-400 focus:border-brand-500 focus:ring-4 focus:ring-brand-500/10 disabled:cursor-not-allowed disabled:opacity-60"
                 />
 
                 {type === "password" && (
