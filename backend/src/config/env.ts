@@ -7,7 +7,10 @@ const environmentSchema = z.object({
   PORT: z.coerce.number().int().positive().default(8080),
   HOST: z.string().default('0.0.0.0'),
   API_PREFIX: z.string().startsWith('/').default('/api/v1'),
-  CLIENT_ORIGIN: z.string().url().default('http://localhost:5173')
+  CLIENT_ORIGIN: z.string().url().default('http://localhost:5173'),
+  DATABASE_URL: z.string().url().default('postgresql://querydocs:querydocs@localhost:5432/querydocs?schema=public'),
+  JWT_SECRET: z.string().min(32).default('change-this-development-secret-at-least-32-chars'),
+  JWT_EXPIRES_IN: z.string().default('1h')
 });
 
 export const env = environmentSchema.parse(process.env);

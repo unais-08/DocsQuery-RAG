@@ -1,0 +1,16 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: querydocs-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: querydocs
+      POSTGRES_PASSWORD: querydocs
+      POSTGRES_DB: querydocs
+    ports:
+      - "5432:5432"
+    volumes:
+      - querydocs-postgres-data:/var/lib/postgresql/data
+
+volumes:
+  querydocs-postgres-data:

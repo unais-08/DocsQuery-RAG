@@ -1,5 +1,7 @@
 import type { ErrorRequestHandler, RequestHandler } from 'express';
+import { ZodError } from 'zod';
 import { logger } from '../config/logger.js';
+import { AuthError } from '../modules/auth/auth.service.js';
 
 export const notFoundHandler: RequestHandler = (request, response) => {
   response.status(404).json({
@@ -11,6 +13,24 @@ export const notFoundHandler: RequestHandler = (request, response) => {
 };
 
 export const errorHandler: ErrorRequestHandler = (error, _request, response, _next) => {
+  if (error instanceof ZodError) {
+    response.status(400).json({
+      error: {
+        code: 'VALIDATION_ERROR',
+        message: 'Request validation failed',
+        details: error.flatten().fieldErrors
+      }
+    });
+    return;
+  }
+
+  if (error instanceof AuthError) {
+    response.status(error.statusCode).json({
+      error: { code: error.code, message: error.message }
+    });
+    return;
+  }
+
   logger.error({ err: error }, 'Unhandled request error');
 
   response.status(500).json({
