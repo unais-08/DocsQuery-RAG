@@ -5,6 +5,7 @@ import { env } from './config/env.js';
 import { requestLogger } from './middleware/request-logger.js';
 import { errorHandler, notFoundHandler } from './middleware/error-handler.js';
 import { healthRouter } from './routes/health.routes.js';
+import { authRouter } from './modules/auth/auth.routes.js';
 
 const app = express();
 
@@ -24,6 +25,7 @@ app.get('/', (_request, response) => {
 });
 
 app.use(`${env.API_PREFIX}/health`, healthRouter);
+app.use(`${env.API_PREFIX}/auth`, authRouter);
 app.use(notFoundHandler);
 app.use(errorHandler);
 
