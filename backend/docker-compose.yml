@@ -4,8 +4,8 @@ services:
     container_name: querydocs-postgres
     restart: unless-stopped
     environment:
-      POSTGRES_USER: querydocs
-      POSTGRES_PASSWORD: querydocs
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
       POSTGRES_DB: querydocs
     ports:
       - "5432:5432"
