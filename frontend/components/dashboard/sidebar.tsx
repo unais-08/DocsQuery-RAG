@@ -1,46 +1,13 @@
 "use client";
 
 import Link from "next/link";
+import { FileText } from "lucide-react";
 import { usePathname } from "next/navigation";
+
 import {
-    BarChart3,
-    FileText,
-    Home,
-    MessageCircle,
-    Settings,
-    Sparkles,
-} from "lucide-react";
-
-const navigation = [
-    {
-        name: "Dashboard",
-        href: "/dashboard",
-        icon: Home,
-    },
-    {
-        name: "Documents",
-        href: "/dashboard/documents",
-        icon: FileText,
-    },
-    {
-        name: "Q&A",
-        href: "/dashboard/chat",
-        icon: MessageCircle,
-    },
-    {
-        name: "Analytics",
-        href: "/dashboard/analytics",
-        icon: BarChart3,
-    },
-];
-
-const secondaryNavigation = [
-    {
-        name: "Settings",
-        href: "/dashboard/settings",
-        icon: Settings,
-    },
-];
+    mainNavigation,
+    accountNavigation,
+} from "./dashboard-nav";
 
 export function Sidebar() {
     const pathname = usePathname();
@@ -54,7 +21,7 @@ export function Sidebar() {
                     href="/dashboard"
                     className="flex items-center gap-2"
                 >
-                    <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-brand-600 text-white">
+                    <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-brand-600 text-white shadow-sm">
                         <FileText size={19} />
                     </div>
 
@@ -65,14 +32,15 @@ export function Sidebar() {
             </div>
 
             {/* Navigation */}
-            <div className="flex flex-1 flex-col px-3 py-6">
+            <div className="flex flex-1 flex-col overflow-y-auto px-3 py-6">
 
+                {/* Workspace */}
                 <p className="mb-3 px-3 text-xs font-semibold uppercase tracking-wider text-gray-400">
                     Workspace
                 </p>
 
                 <nav className="space-y-1">
-                    {navigation.map((item) => {
+                    {mainNavigation.map((item) => {
                         const Icon = item.icon;
 
                         const active =
@@ -90,18 +58,19 @@ export function Sidebar() {
                             >
                                 <Icon size={18} />
 
-                                {item.name}
+                                <span>{item.name}</span>
                             </Link>
                         );
                     })}
                 </nav>
 
+                {/* Account */}
                 <p className="mb-3 mt-8 px-3 text-xs font-semibold uppercase tracking-wider text-gray-400">
                     Account
                 </p>
 
                 <nav className="space-y-1">
-                    {secondaryNavigation.map((item) => {
+                    {accountNavigation.map((item) => {
                         const Icon = item.icon;
 
                         const active = pathname.startsWith(item.href);
@@ -117,7 +86,7 @@ export function Sidebar() {
                             >
                                 <Icon size={18} />
 
-                                {item.name}
+                                <span>{item.name}</span>
                             </Link>
                         );
                     })}
@@ -125,22 +94,24 @@ export function Sidebar() {
 
             </div>
 
-            {/* Bottom user */}
+            {/* User */}
             <div className="border-t border-gray-100 p-4">
                 <div className="flex items-center gap-3 rounded-xl p-2">
-                    <div className="flex h-9 w-9 items-center justify-center rounded-full bg-brand-100 text-sm font-semibold text-brand-700">
-                        U
+
+                    <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-brand-100 text-sm font-semibold text-brand-700">
+                        J
                     </div>
 
                     <div className="min-w-0">
                         <p className="truncate text-sm font-semibold text-gray-900">
-                            Test User
+                          John Doe
                         </p>
 
                         <p className="truncate text-xs text-gray-500">
-                            test@example.com
+                            you@example.com
                         </p>
                     </div>
+
                 </div>
             </div>
 

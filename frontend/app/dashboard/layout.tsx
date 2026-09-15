@@ -1,5 +1,5 @@
-import { Sidebar } from "@/components/dashboard/sidebar";
 import { Navbar } from "@/components/dashboard/navbar";
+import { Sidebar } from "@/components/dashboard/sidebar";
 
 export default function DashboardLayout({
     children,
@@ -9,14 +9,16 @@ export default function DashboardLayout({
     return (
         <div className="min-h-screen bg-background">
 
-            {/* Sidebar */}
+            {/* Desktop Sidebar */}
             <Sidebar />
 
-            {/* Main area */}
+            {/* Main */}
             <div className="lg:pl-64">
 
+                {/* Navbar */}
                 <Navbar />
 
+                {/* Page content */}
                 <main className="p-4 sm:p-6 lg:p-8">
                     {children}
                 </main>
