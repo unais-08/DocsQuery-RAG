@@ -1,4 +1,3 @@
-import { GitBranchIcon } from "lucide-react";
 
 export function SocialButtons() {
     return (
@@ -10,14 +9,6 @@ export function SocialButtons() {
             >
                 <GoogleIcon />
                 Continue with Google
-            </button>
-
-            <button
-                type="button"
-                className="flex h-12 w-full items-center justify-center gap-3 rounded-xl border border-gray-200 bg-white text-sm font-medium text-gray-800 transition hover:bg-gray-50"
-            >
-                <GitBranchIcon size={18} />
-                Continue with GitHub
             </button>
 
         </div>

@@ -5,32 +5,27 @@ import { SocialButtons } from "@/components/auth/social-buttons";
 export default function RegisterPage() {
     return (
         <AuthShell mode="register">
-
             <div>
                 <h1 className="text-3xl font-bold tracking-tight text-gray-950 sm:text-[2.15rem]">
                     Create your account
                 </h1>
-
                 <p className="mt-2 text-sm leading-6 text-gray-500">
                     Start turning your documents into knowledge.
                 </p>
             </div>
 
-            <form className="mt-8 space-y-5">
-
+            <form className="mt-8 space-y-4">
                 <AuthInput
                     label="Full name"
                     name="name"
                     placeholder="Your name"
                 />
-
                 <AuthInput
                     label="Email address"
                     name="email"
                     type="email"
                     placeholder="you@example.com"
                 />
-
                 <AuthInput
                     label="Password"
                     name="password"
@@ -38,43 +33,19 @@ export default function RegisterPage() {
                     placeholder="Create a password"
                 />
 
-                {/* Password requirements */}
-                <div className="rounded-xl bg-brand-50 px-4 py-3">
-                    <p className="text-xs font-medium text-gray-700">
-                        Your password should contain:
-                    </p>
 
-                    <ul className="mt-2 space-y-1 text-xs text-gray-500">
-                        <li>• At least 8 characters</li>
-                        <li>• A letter and a number</li>
-                        <li>• A unique password</li>
-                    </ul>
-                </div>
 
                 <button
                     type="submit"
-                    className="h-12 w-full rounded-xl bg-brand-600 text-sm font-semibold text-white shadow-lg shadow-brand-600/20 transition hover:bg-brand-700 active:scale-[0.99]"
+                    className="h-11 w-full rounded-xl bg-brand-600 text-sm font-semibold text-white shadow-lg shadow-brand-600/20 transition hover:bg-brand-700 active:scale-[0.99]"
                 >
                     Create account
                 </button>
 
-                <p className="text-center text-xs leading-5 text-gray-400">
-                    By creating an account, you agree to our{" "}
-                    <span className="text-gray-600">
-                        Terms of Service
-                    </span>{" "}
-                    and{" "}
-                    <span className="text-gray-600">
-                        Privacy Policy
-                    </span>
-                    .
-                </p>
 
             </form>
 
             <Divider />
-
-            <SocialButtons />
 
         </AuthShell>
     );
@@ -82,13 +53,9 @@ export default function RegisterPage() {
 
 function Divider() {
     return (
-        <div className="my-6 flex items-center gap-4">
+        <div className="my-5 flex items-center gap-4">
             <div className="h-px flex-1 bg-gray-200" />
-
-            <span className="text-xs font-medium uppercase text-gray-400">
-                or
-            </span>
-
+            <span className="text-xs font-medium uppercase text-gray-400">or</span>
             <div className="h-px flex-1 bg-gray-200" />
         </div>
     );
