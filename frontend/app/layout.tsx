@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import type { ReactNode } from "react";
 
 import { AuthProvider } from "@/context/auth-context";
 
@@ -13,7 +14,7 @@ export const metadata: Metadata = {
     "Ask questions and get answers from your documents using AI.",
 };
 
-export default function RootLayout({ children }: LayoutProps<"/">) {
+export default function RootLayout({ children }: { children: ReactNode }) {
   return (
     <html lang="en">
       <body>
