@@ -12,7 +12,8 @@ const environmentSchema = z.object({
   JWT_SECRET: z.string().min(32).default('change-this-development-secret-at-least-32-chars'),
   JWT_EXPIRES_IN: z.string().default('1h'),
   UPLOAD_DIR: z.string().default('./uploads'),
-  MAX_FILE_SIZE_MB: z.coerce.number().int().positive().default(10)
+  MAX_FILE_SIZE_MB: z.coerce.number().int().positive().default(10),
+  GEMINI_API_KEY: z.string().min(1, 'GEMINI_API_KEY is required'),
 });
 
 export const env = environmentSchema.parse(process.env);
