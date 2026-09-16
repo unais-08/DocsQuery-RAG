@@ -1,0 +1,126 @@
+import type { Express } from 'express';
+import { prisma } from '../../config/prisma.js';
+import { DocumentError } from './document.errors.js';
+import { removeStoredFile } from './document.storage.js';
+
+const documentSummary = {
+  id: true,
+  name: true,
+  fileType: true,
+  fileSize: true,
+  createdAt: true,
+  updatedAt: true
+} as const;
+
+const toDocumentResponse = (document: {
+  id: string;
+  name: string;
+  fileType: string;
+  fileSize: number;
+  createdAt: Date;
+  updatedAt: Date;
+}) => ({
+  id: document.id,
+  name: document.name,
+  type: document.fileType,
+  size: document.fileSize,
+  createdAt: document.createdAt,
+  updatedAt: document.updatedAt
+});
+
+export const createDocument = async (
+  userId: string,
+  file: Express.Multer.File,
+  name?: string
+) => {
+  try {
+    const document = await prisma.document.create({
+      data: {
+        userId,
+        name: name ?? file.originalname,
+        originalFileName: file.originalname,
+        fileType: file.mimetype,
+        fileSize: file.size,
+        filePath: file.path
+      },
+      select: { ...documentSummary, originalFileName: true }
+    });
+
+    return {
+      document: {
+        ...toDocumentResponse(document),
+        originalFileName: document.originalFileName
+      }
+    };
+  } catch (error) {
+    await removeStoredFile(file.path);
+    throw error;
+  }
+};
+
+export const listDocuments = async (userId: string) => {
+  const [documents, count] = await prisma.$transaction([
+    prisma.document.findMany({
+      where: { userId },
+      orderBy: { createdAt: 'desc' },
+      select: documentSummary
+    }),
+    prisma.document.count({ where: { userId } })
+  ]);
+
+  return { documents: documents.map(toDocumentResponse), count };
+};
+
+export const getDocument = async (userId: string, id: string) => {
+  const document = await prisma.document.findFirst({
+    where: { id, userId },
+    select: { ...documentSummary, originalFileName: true }
+  });
+
+  if (!document) {
+    throw new DocumentError('Document not found', 404, 'DOCUMENT_NOT_FOUND');
+  }
+
+  return {
+    document: {
+      ...toDocumentResponse(document),
+      originalFileName: document.originalFileName
+    }
+  };
+};
+
+export const renameDocument = async (userId: string, id: string, name: string) => {
+  const result = await prisma.document.updateMany({
+    where: { id, userId },
+    data: { name }
+  });
+
+  if (result.count === 0) {
+    throw new DocumentError('Document not found', 404, 'DOCUMENT_NOT_FOUND');
+  }
+
+  return getDocument(userId, id);
+};
+
+export const deleteDocument = async (userId: string, id: string) => {
+  const document = await prisma.document.findFirst({ where: { id, userId } });
+
+  if (!document) {
+    throw new DocumentError('Document not found', 404, 'DOCUMENT_NOT_FOUND');
+  }
+
+  await prisma.document.delete({ where: { id: document.id } });
+  try {
+    await removeStoredFile(document.filePath);
+  } catch {
+    throw new DocumentError(
+      'Document record was deleted, but its file could not be removed',
+      500,
+      'FILE_DELETE_FAILED'
+    );
+  }
+};
+
+export const getDocumentStats = async (userId: string) => ({
+  count: await prisma.document.count({ where: { userId } })
+});

@@ -6,6 +6,7 @@ import { requestLogger } from './middleware/request-logger.js';
 import { errorHandler, notFoundHandler } from './middleware/error-handler.js';
 import { healthRouter } from './routes/health.routes.js';
 import { authRouter } from './modules/auth/auth.routes.js';
+import { documentRouter } from './modules/documents/document.routes.js';
 
 const app = express();
 
@@ -31,6 +32,7 @@ app.get('/', (_request, response) => {
 
 app.use(`${env.API_PREFIX}/health`, healthRouter);
 app.use(`${env.API_PREFIX}/auth`, authRouter);
+app.use(`${env.API_PREFIX}/documents`, documentRouter);
 app.use(notFoundHandler);
 app.use(errorHandler);
 
