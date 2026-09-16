@@ -5,6 +5,7 @@ import {
   Check,
   ExternalLink,
   FileText,
+  FileType2,
   Inbox,
   Loader2,
   Pencil,
@@ -50,6 +51,24 @@ function formatDate(value: string) {
 
 function documentType(type: string) {
   return type.includes("pdf") ? "PDF" : "DOCX";
+}
+
+// Extension-based styling so the file icon/badge reflects the actual type
+// (PDF vs DOCX) instead of one generic look for every document.
+function fileTypeStyle(type: string) {
+  return documentType(type) === "PDF"
+    ? {
+      Icon: FileText,
+      iconBg: "bg-red-50",
+      iconText: "text-red-600",
+      badge: "bg-red-50 text-red-600",
+    }
+    : {
+      Icon: FileType2,
+      iconBg: "bg-docs-blue-50",
+      iconText: "text-docs-blue-600",
+      badge: "bg-docs-blue-50 text-docs-blue-700",
+    };
 }
 
 export default function DocumentsPage() {
@@ -236,8 +255,8 @@ export default function DocumentsPage() {
         onDragLeave={() => setIsDragging(false)}
         onDrop={handleDrop}
         className={`flex cursor-pointer flex-col items-center gap-3 rounded-docs-lg border-2 border-dashed px-6 py-8 text-center transition ${isDragging
-            ? "border-brand-500 bg-brand-50"
-            : "border-border bg-surface hover:border-brand-300 hover:bg-brand-50/40"
+          ? "border-brand-500 bg-brand-50"
+          : "border-border bg-surface hover:border-brand-300 hover:bg-brand-50/40"
           }`}
       >
         <div className="flex h-11 w-11 items-center justify-center rounded-full bg-brand-100 text-brand-600">
@@ -292,58 +311,154 @@ export default function DocumentsPage() {
         </div>
       ) : (
         <div className="overflow-hidden rounded-docs-lg border border-border bg-surface shadow-docs-card">
-          {filteredDocuments.map((document, index) => (
-            <div key={document.id} className={`flex items-center gap-4 px-5 py-4 transition hover:bg-background ${index !== filteredDocuments.length - 1 ? "border-b border-border" : ""}`}>
-              <div className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-docs-md ${documentType(document.type) === "PDF" ? "bg-red-50 text-red-600" : "bg-docs-blue-50 text-docs-blue-600"}`}>
-                <FileText size={18} />
-              </div>
-              <div className="min-w-0 flex-1">
-                {renamingId === document.id ? (
-                  <div className="flex items-center gap-2">
-                    <input
-                      autoFocus
-                      value={draftName}
-                      onChange={(event) => setDraftName(event.target.value)}
-                      onKeyDown={(event) => {
-                        if (event.key === "Enter") void confirmRename(document.id);
-                        if (event.key === "Escape") cancelRename();
-                      }}
-                      className="h-8 w-full max-w-xs rounded-md border border-brand-300 bg-surface px-2 text-sm text-text-primary focus:outline-none focus:ring-2 focus:ring-brand-100"
-                    />
-                    <button type="button" onClick={() => void confirmRename(document.id)} disabled={savingRename} className="rounded p-1.5 text-brand-600 hover:bg-brand-50 disabled:opacity-50" title="Save">
-                      <Check size={15} />
-                    </button>
-                    <button type="button" onClick={cancelRename} disabled={savingRename} className="rounded p-1.5 text-text-muted hover:bg-background" title="Cancel">
-                      <X size={15} />
-                    </button>
+          {/* Table view — sm and up */}
+          <table className="hidden w-full text-left sm:table">
+            <thead>
+              <tr className="border-b border-border text-xs font-medium text-text-muted">
+                <th className="px-5 py-3 font-medium">Name</th>
+                <th className="px-5 py-3 font-medium">Type</th>
+                <th className="px-5 py-3 font-medium">Size</th>
+                <th className="px-5 py-3 font-medium">Uploaded</th>
+                <th className="px-5 py-3 font-medium">Status</th>
+                <th className="px-5 py-3 text-right font-medium">Actions</th>
+              </tr>
+            </thead>
+
+            <tbody className="divide-y divide-border">
+              {filteredDocuments.map((document) => {
+                const style = fileTypeStyle(document.type);
+                const FileIcon = style.Icon;
+
+                return (
+                  <tr key={document.id} className="transition hover:bg-background">
+                    <td className="px-5 py-4">
+                      <div className="flex min-w-0 items-center gap-3">
+                        <div className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-docs-md ${style.iconBg} ${style.iconText}`}>
+                          <FileIcon size={17} />
+                        </div>
+
+                        {renamingId === document.id ? (
+                          <div className="flex min-w-0 items-center gap-2">
+                            <input
+                              autoFocus
+                              value={draftName}
+                              onChange={(event) => setDraftName(event.target.value)}
+                              onKeyDown={(event) => {
+                                if (event.key === "Enter") void confirmRename(document.id);
+                                if (event.key === "Escape") cancelRename();
+                              }}
+                              className="h-8 w-full max-w-xs rounded-md border border-brand-300 bg-surface px-2 text-sm text-text-primary focus:outline-none focus:ring-2 focus:ring-brand-100"
+                            />
+                            <button type="button" onClick={() => void confirmRename(document.id)} disabled={savingRename} className="rounded p-1.5 text-brand-600 hover:bg-brand-50 disabled:opacity-50" title="Save">
+                              <Check size={15} />
+                            </button>
+                            <button type="button" onClick={cancelRename} disabled={savingRename} className="rounded p-1.5 text-text-muted hover:bg-background" title="Cancel">
+                              <X size={15} />
+                            </button>
+                          </div>
+                        ) : (
+                          <p className="truncate text-sm font-medium text-text-primary">{document.name}</p>
+                        )}
+                      </div>
+                    </td>
+
+                    <td className="px-5 py-4">
+                      <span className={`inline-flex rounded-full px-2.5 py-1 text-xs font-medium ${style.badge}`}>
+                        {documentType(document.type)}
+                      </span>
+                    </td>
+
+                    <td className="px-5 py-4 text-sm text-text-secondary">{document.sizeLabel}</td>
+
+                    <td className="px-5 py-4 text-sm text-text-secondary">{formatDate(document.createdAt)}</td>
+
+                    <td className="px-5 py-4">
+                      <StatusBadge status={document.status} />
+                    </td>
+
+                    <td className="px-5 py-4">
+                      {renamingId !== document.id && (
+                        <div className="flex items-center justify-end gap-1">
+                          <button type="button" title="Open" onClick={() => void handleOpen(document.id)} className="hidden rounded-md p-2 text-text-secondary hover:bg-background hover:text-text-primary sm:inline-flex">
+                            <ExternalLink size={16} />
+                          </button>
+                          <button type="button" title="Rename" onClick={() => startRename(document)} disabled={deletingId !== null} className="rounded-md p-2 text-text-secondary hover:bg-background hover:text-text-primary disabled:opacity-50">
+                            <Pencil size={16} />
+                          </button>
+                          <button type="button" title="Delete" onClick={() => void handleDelete(document.id)} disabled={deletingId === document.id} className="rounded-md p-2 text-text-secondary hover:bg-red-50 hover:text-danger disabled:opacity-50">
+                            {deletingId === document.id ? <Loader2 size={16} className="animate-spin" /> : <Trash2 size={16} />}
+                          </button>
+                        </div>
+                      )}
+                    </td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+
+          {/* Stacked card view — below sm, where a table can't fit */}
+          <div className="divide-y divide-border sm:hidden">
+            {filteredDocuments.map((document) => {
+              const style = fileTypeStyle(document.type);
+              const FileIcon = style.Icon;
+
+              return (
+                <div key={document.id} className="flex items-center gap-3 px-5 py-4 transition hover:bg-background">
+                  <div className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-docs-md ${style.iconBg} ${style.iconText}`}>
+                    <FileIcon size={18} />
                   </div>
-                ) : (
-                  <>
-                    <p className="truncate text-sm font-medium text-text-primary">{document.name}</p>
-                    <div className="mt-1 flex flex-wrap items-center gap-2 text-xs text-text-muted">
-                      <span>{documentType(document.type)}</span><span>·</span><span>{document.sizeLabel}</span><span>·</span><span>{formatDate(document.createdAt)}</span>
+
+                  <div className="min-w-0 flex-1">
+                    {renamingId === document.id ? (
+                      <div className="flex items-center gap-2">
+                        <input
+                          autoFocus
+                          value={draftName}
+                          onChange={(event) => setDraftName(event.target.value)}
+                          onKeyDown={(event) => {
+                            if (event.key === "Enter") void confirmRename(document.id);
+                            if (event.key === "Escape") cancelRename();
+                          }}
+                          className="h-8 w-full rounded-md border border-brand-300 bg-surface px-2 text-sm text-text-primary focus:outline-none focus:ring-2 focus:ring-brand-100"
+                        />
+                        <button type="button" onClick={() => void confirmRename(document.id)} disabled={savingRename} className="rounded p-1.5 text-brand-600 hover:bg-brand-50 disabled:opacity-50" title="Save">
+                          <Check size={15} />
+                        </button>
+                        <button type="button" onClick={cancelRename} disabled={savingRename} className="rounded p-1.5 text-text-muted hover:bg-background" title="Cancel">
+                          <X size={15} />
+                        </button>
+                      </div>
+                    ) : (
+                      <>
+                        <p className="truncate text-sm font-medium text-text-primary">{document.name}</p>
+                        <div className="mt-1 flex flex-wrap items-center gap-2 text-xs text-text-muted">
+                          <span className={`inline-flex rounded-full px-2 py-0.5 font-medium ${style.badge}`}>
+                            {documentType(document.type)}
+                          </span>
+                          <span>{document.sizeLabel}</span>
+                          <span>·</span>
+                          <span>{formatDate(document.createdAt)}</span>
+                        </div>
+                      </>
+                    )}
+                  </div>
+
+                  {renamingId !== document.id && (
+                    <div className="flex shrink-0 items-center gap-1">
+                      <StatusBadge status={document.status} />
+                      <button type="button" title="Rename" onClick={() => startRename(document)} disabled={deletingId !== null} className="rounded-md p-2 text-text-secondary hover:bg-background hover:text-text-primary disabled:opacity-50">
+                        <Pencil size={16} />
+                      </button>
+                      <button type="button" title="Delete" onClick={() => void handleDelete(document.id)} disabled={deletingId === document.id} className="rounded-md p-2 text-text-secondary hover:bg-red-50 hover:text-danger disabled:opacity-50">
+                        {deletingId === document.id ? <Loader2 size={16} className="animate-spin" /> : <Trash2 size={16} />}
+                      </button>
                     </div>
-                  </>
-                )}
-              </div>
-              {renamingId !== document.id && (
-                <>
-                  <StatusBadge status={document.status} />
-                  <div className="flex items-center gap-1">
-                    <button type="button" title="Open" onClick={() => void handleOpen(document.id)} className="hidden rounded-md p-2 text-text-secondary hover:bg-background hover:text-text-primary sm:inline-flex">
-                      <ExternalLink size={16} />
-                    </button>
-                    <button type="button" title="Rename" onClick={() => startRename(document)} disabled={deletingId !== null} className="rounded-md p-2 text-text-secondary hover:bg-background hover:text-text-primary disabled:opacity-50">
-                      <Pencil size={16} />
-                    </button>
-                    <button type="button" title="Delete" onClick={() => void handleDelete(document.id)} disabled={deletingId === document.id} className="rounded-md p-2 text-text-secondary hover:bg-red-50 hover:text-danger disabled:opacity-50">
-                      {deletingId === document.id ? <Loader2 size={16} className="animate-spin" /> : <Trash2 size={16} />}
-                    </button>
-                  </div>
-                </>
-              )}
-            </div>
-          ))}
+                  )}
+                </div>
+              );
+            })}
+          </div>
         </div>
       )}
     </div>
