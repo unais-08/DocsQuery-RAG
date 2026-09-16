@@ -9,6 +9,7 @@ import { useAuth } from "@/context/auth-context";
 import {
     mainNavigation,
     accountNavigation,
+    isNavigationItemActive,
 } from "./dashboard-nav";
 
 export function Sidebar() {
@@ -43,9 +44,7 @@ export function Sidebar() {
                 <nav className="space-y-1">
                     {mainNavigation.map((item) => {
                         const Icon = item.icon;
-                        const active =
-                            pathname === item.href ||
-                            pathname.startsWith(`${item.href}/`);
+                        const active = isNavigationItemActive(pathname, item.href);
 
                         return (
                             <Link
@@ -72,7 +71,7 @@ export function Sidebar() {
                 <nav className="space-y-1">
                     {accountNavigation.map((item) => {
                         const Icon = item.icon;
-                        const active = pathname.startsWith(item.href);
+                        const active = isNavigationItemActive(pathname, item.href);
 
                         return (
                             <Link

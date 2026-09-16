@@ -9,6 +9,7 @@ import { useAuth } from "@/context/auth-context";
 import {
     mainNavigation,
     accountNavigation,
+    isNavigationItemActive,
 } from "./dashboard-nav";
 
 interface MobileSidebarProps {
@@ -69,9 +70,7 @@ export function MobileSidebar({ open, onClose }: MobileSidebarProps) {
                     <nav className="space-y-1">
                         {mainNavigation.map((item) => {
                             const Icon = item.icon;
-                            const active =
-                                pathname === item.href ||
-                                pathname.startsWith(`${item.href}/`);
+                            const active = isNavigationItemActive(pathname, item.href);
 
                             return (
                                 <Link
@@ -98,7 +97,7 @@ export function MobileSidebar({ open, onClose }: MobileSidebarProps) {
                     <nav className="space-y-1">
                         {accountNavigation.map((item) => {
                             const Icon = item.icon;
-                            const active = pathname.startsWith(item.href);
+                            const active = isNavigationItemActive(pathname, item.href);
 
                             return (
                                 <Link
