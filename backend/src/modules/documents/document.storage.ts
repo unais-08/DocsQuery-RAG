@@ -7,7 +7,8 @@ import { DocumentError } from './document.errors.js';
 
 const allowedTypes = new Map([
   ['application/pdf', '.pdf'],
-  ['application/vnd.openxmlformats-officedocument.wordprocessingml.document', '.docx']
+  ['application/vnd.openxmlformats-officedocument.wordprocessingml.document', '.docx'],
+  ['text/plain', '.txt']
 ]);
 
 const uploadDirectory = path.resolve(env.UPLOAD_DIR);

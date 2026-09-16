@@ -3,6 +3,9 @@ import { removeStoredFile } from './document.storage.js';
 import { createDocument, deleteDocument, getDocument, getDocumentStats, listDocuments, renameDocument } from './document.service.js';
 import { documentIdSchema, renameDocumentSchema, uploadDocumentFieldsSchema } from './document.validation.js';
 import { DocumentError } from './document.errors.js';
+import { documentService } from '../../services/document/document.service.js';
+import { logger } from '../../config/logger.js';
+
 
 export const upload = async (request: Request, response: Response, next: NextFunction) => {
   let documentCreated = false;
@@ -12,7 +15,17 @@ export const upload = async (request: Request, response: Response, next: NextFun
     }
     const fields = uploadDocumentFieldsSchema.parse(request.body);
     const result = await createDocument(request.userId, request.file, fields.name);
+    const filePath = request.file.path;
+    const processedDocument = await documentService.extractAndChunk(filePath);
     documentCreated = true;
+    logger.info(
+      {
+        documentId: result.document.id,
+        characterCount: processedDocument.characterCount,
+        chunkCount: processedDocument.chunks.length
+      },
+      'Document extracted, cleaned, and chunked'
+    );
     response.status(201).json(result);
   } catch (error) {
     if (request.file && !documentCreated) {
@@ -21,6 +34,7 @@ export const upload = async (request: Request, response: Response, next: NextFun
     next(error);
   }
 };
+
 
 export const list = async (request: Request, response: Response, next: NextFunction) => {
   try {
