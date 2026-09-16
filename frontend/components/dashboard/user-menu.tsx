@@ -1,6 +1,7 @@
 "use client";
 
 import { ChevronDown, LogOut, User } from "lucide-react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 
@@ -56,13 +57,14 @@ export function UserMenu() {
                         </p>
                     </div>
 
-                    <button
-                        type="button"
+                    <Link
+                        href="/dashboard/profile"
+                        onClick={() => setOpen(false)}
                         className="mt-1 flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-sm text-gray-600 hover:bg-gray-50"
                     >
                         <User size={17} />
                         Profile
-                    </button>
+                    </Link>
 
 
                     <button

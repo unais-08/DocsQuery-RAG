@@ -1,6 +1,7 @@
 "use client";
 
-import { Moon, Sun } from "lucide-react";
+import { Moon, Sun, Trash2 } from "lucide-react";
+import { toast } from "sonner";
 
 import { useTheme } from "@/context/theme-context";
 
@@ -43,6 +44,28 @@ export default function SettingsPage() {
               darkModeEnabled ? "left-6" : "left-1"
             }`}
           />
+        </button>
+      </div>
+
+      <div className="mt-8 flex items-center justify-between border-t border-gray-100 pt-6">
+        <div className="flex items-center gap-3">
+          <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-red-50 text-red-600">
+            <Trash2 size={18} />
+          </div>
+          <div>
+            <p className="text-sm font-semibold text-gray-900">Delete account</p>
+            <p className="mt-0.5 text-xs text-gray-500">
+              Account deletion is not available yet.
+            </p>
+          </div>
+        </div>
+
+        <button
+          type="button"
+          onClick={() => toast.info("Account deletion is coming soon.")}
+          className="rounded-xl border border-red-200 px-3 py-2 text-sm font-semibold text-red-600 transition hover:bg-red-50"
+        >
+          Delete account
         </button>
       </div>
     </div>
