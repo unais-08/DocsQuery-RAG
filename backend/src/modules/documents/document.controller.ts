@@ -5,6 +5,7 @@ import { documentIdSchema, renameDocumentSchema, uploadDocumentFieldsSchema } fr
 import { DocumentError } from './document.errors.js';
 import { documentService } from '../../services/document/document.service.js';
 import { logger } from '../../config/logger.js';
+import { upsertChunkVectors } from '../../services/Qdrant/qdrant.service.js';
 
 
 export const upload = async (request: Request, response: Response, next: NextFunction) => {
@@ -17,6 +18,14 @@ export const upload = async (request: Request, response: Response, next: NextFun
     const result = await createDocument(request.userId, request.file, fields.name);
     const filePath = request.file.path;
     const processedDocument = await documentService.extractAndChunk(filePath);
+    const chunkVectors = processedDocument.chunks.map((chunk) => ({
+      id: `${result.document.id}-${chunk.index}`,
+      userId: request.userId,
+      documentId: result.document.id,
+      chunkIndex: chunk.index,
+      embedding: chunk.embedding,
+    }));
+    await upsertChunkVectors(chunkVectors);
     documentCreated = true;
     logger.info(
       {

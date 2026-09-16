@@ -1,0 +1,1 @@
+export const QDRANT_COLLECTION = "docsquery_chunks";
