@@ -2,6 +2,25 @@ import { apiRequest } from "@/lib/api/client";
 
 const DOCUMENTS_API_PREFIX = "/api/v1/documents";
 
+export const ALLOWED_DOCUMENT_MIME_TYPES = [
+  "application/pdf",
+  "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+] as const;
+
+export const MAX_DOCUMENT_SIZE = 10 * 1024 * 1024;
+
+export function validateDocumentFile(file: File) {
+  if (!ALLOWED_DOCUMENT_MIME_TYPES.includes(file.type as (typeof ALLOWED_DOCUMENT_MIME_TYPES)[number])) {
+    return "Only PDF and DOCX files are supported.";
+  }
+
+  if (file.size > MAX_DOCUMENT_SIZE) {
+    return "File size must be less than 10MB.";
+  }
+
+  return null;
+}
+
 export type Document = {
   id: string;
   name: string;

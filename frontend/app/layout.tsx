@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import type { ReactNode } from "react";
 
 import { AuthProvider } from "@/context/auth-context";
+import { Toaster } from "sonner";
 
 import "./globals.css";
 
@@ -19,6 +20,7 @@ export default function RootLayout({ children }: { children: ReactNode }) {
     <html lang="en">
       <body>
         <AuthProvider>{children}</AuthProvider>
+        <Toaster position="top-right" richColors closeButton />
       </body>
     </html>
   );

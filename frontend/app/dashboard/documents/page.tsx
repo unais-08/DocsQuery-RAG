@@ -13,6 +13,7 @@ import {
   Upload,
   X,
 } from "lucide-react";
+import { toast } from "sonner";
 import { useAuth } from "@/context/auth-context";
 import {
   deleteDocument,
@@ -20,17 +21,12 @@ import {
   getDocuments,
   renameDocument,
   uploadDocument,
+  validateDocumentFile,
   type Document,
 } from "@/lib/api/documents";
 
 type DocumentStatus = "Ready" | "Processing" | "Failed";
 type DocumentItem = Document & { sizeLabel: string; status: DocumentStatus };
-
-const ALLOWED_MIME_TYPES = [
-  "application/pdf",
-  "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
-];
-const MAX_FILE_SIZE = 10 * 1024 * 1024;
 
 function toDocumentItem(document: Document): DocumentItem {
   return {
@@ -64,7 +60,6 @@ export default function DocumentsPage() {
   const [isDragging, setIsDragging] = useState(false);
   const [uploading, setUploading] = useState(false);
   const [query, setQuery] = useState("");
-  const [error, setError] = useState<string | null>(null);
   const [renamingId, setRenamingId] = useState<string | null>(null);
   const [draftName, setDraftName] = useState("");
   const [savingRename, setSavingRename] = useState(false);
@@ -79,7 +74,7 @@ export default function DocumentsPage() {
         if (!cancelled) setDocuments(response.documents.map(toDocumentItem));
       })
       .catch((requestError: unknown) => {
-        if (!cancelled) setError(getErrorMessage(requestError, "Failed to load documents."));
+        if (!cancelled) toast.error(getErrorMessage(requestError, "Failed to load documents."));
       })
       .finally(() => {
         if (!cancelled) setDocumentsLoading(false);
@@ -101,27 +96,25 @@ export default function DocumentsPage() {
   const handleFiles = async (files: FileList | null) => {
     if (!files || files.length === 0) return;
     const file = files[0];
-    setError(null);
 
-    if (!ALLOWED_MIME_TYPES.includes(file.type)) {
-      setError("Only PDF and DOCX files are supported.");
-      return;
-    }
-    if (file.size > MAX_FILE_SIZE) {
-      setError("File size must be less than 10MB.");
+    const validationError = validateDocumentFile(file);
+    if (validationError) {
+      toast.error(validationError);
       return;
     }
     if (!token) {
-      setError("Your session has expired. Please sign in again.");
+      toast.error("Your session has expired. Please sign in again.");
       return;
     }
 
     setUploading(true);
+    const uploadToast = toast.loading("Uploading document...");
     try {
       const response = await uploadDocument(file, token);
       setDocuments((previous) => [toDocumentItem(response.document), ...previous]);
-    } catch (requestError) {
-      setError(getErrorMessage(requestError, "Unable to upload this document."));
+      toast.success("Document uploaded successfully", { id: uploadToast });
+    } catch {
+      toast.error("Failed to upload document", { id: uploadToast });
     } finally {
       setUploading(false);
       if (fileInputRef.current) fileInputRef.current.value = "";
@@ -138,17 +131,18 @@ export default function DocumentsPage() {
     const document = documents.find((item) => item.id === id);
     if (!document || !window.confirm(`Delete "${document.name}"? This can't be undone.`)) return;
     if (!token) {
-      setError("Your session has expired. Please sign in again.");
+      toast.error("Your session has expired. Please sign in again.");
       return;
     }
 
-    setError(null);
     setDeletingId(id);
+    const deleteToast = toast.loading("Deleting document...");
     try {
       await deleteDocument(id, token);
       setDocuments((previous) => previous.filter((item) => item.id !== id));
-    } catch (requestError) {
-      setError(getErrorMessage(requestError, "Unable to delete this document."));
+      toast.success("Document deleted successfully", { id: deleteToast });
+    } catch {
+      toast.error("Failed to delete document", { id: deleteToast });
     } finally {
       setDeletingId(null);
     }
@@ -167,16 +161,16 @@ export default function DocumentsPage() {
   const confirmRename = async (id: string) => {
     const name = draftName.trim();
     if (!name) {
-      setError("Document name cannot be empty.");
+      toast.error("Document name cannot be empty.");
       return;
     }
     if (!token) {
-      setError("Your session has expired. Please sign in again.");
+      toast.error("Your session has expired. Please sign in again.");
       return;
     }
 
-    setError(null);
     setSavingRename(true);
+    const renameToast = toast.loading("Renaming document...");
     try {
       const response = await renameDocument(id, name, token);
       setDocuments((previous) =>
@@ -185,8 +179,9 @@ export default function DocumentsPage() {
         ),
       );
       cancelRename();
-    } catch (requestError) {
-      setError(getErrorMessage(requestError, "Unable to rename this document."));
+      toast.success("Document renamed successfully", { id: renameToast });
+    } catch {
+      toast.error("Failed to rename document", { id: renameToast });
     } finally {
       setSavingRename(false);
     }
@@ -194,14 +189,14 @@ export default function DocumentsPage() {
 
   const handleOpen = async (id: string) => {
     if (!token) {
-      setError("Your session has expired. Please sign in again.");
+      toast.error("Your session has expired. Please sign in again.");
       return;
     }
     try {
       await getDocument(id, token);
-      setError("This document is stored securely, but file preview is not available yet.");
+      toast.info("This document is stored securely, but preview is not available yet.");
     } catch (requestError) {
-      setError(getErrorMessage(requestError, "Unable to open this document."));
+      toast.error(getErrorMessage(requestError, "Unable to open this document."));
     }
   };
 
@@ -240,11 +235,10 @@ export default function DocumentsPage() {
         }}
         onDragLeave={() => setIsDragging(false)}
         onDrop={handleDrop}
-        className={`flex cursor-pointer flex-col items-center gap-3 rounded-docs-lg border-2 border-dashed px-6 py-8 text-center transition ${
-          isDragging
+        className={`flex cursor-pointer flex-col items-center gap-3 rounded-docs-lg border-2 border-dashed px-6 py-8 text-center transition ${isDragging
             ? "border-brand-500 bg-brand-50"
             : "border-border bg-surface hover:border-brand-300 hover:bg-brand-50/40"
-        }`}
+          }`}
       >
         <div className="flex h-11 w-11 items-center justify-center rounded-full bg-brand-100 text-brand-600">
           {uploading ? <Loader2 size={20} className="animate-spin" /> : <Upload size={20} />}
@@ -256,15 +250,6 @@ export default function DocumentsPage() {
           <p className="mt-1 text-xs text-text-muted">PDF or DOCX · Up to 10MB</p>
         </div>
       </div>
-
-      {error && (
-        <div className="flex items-center justify-between rounded-docs-md border border-danger/20 bg-red-50 px-4 py-2.5 text-sm text-danger">
-          {error}
-          <button type="button" onClick={() => setError(null)} className="rounded p-1 hover:bg-red-100">
-            <X size={14} />
-          </button>
-        </div>
-      )}
 
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <h2 className="text-sm font-semibold text-text-primary">

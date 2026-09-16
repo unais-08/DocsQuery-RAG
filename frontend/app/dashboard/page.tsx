@@ -3,12 +3,19 @@
 import {
     FileText,
     HardDrive,
+    Loader2,
     MessageCircle,
     Upload,
 } from "lucide-react";
+import { useRef, useState } from "react";
+import { toast } from "sonner";
 
 import { StatCard } from "@/components/dashboard/stats-card";
 import { useAuth } from "@/context/auth-context";
+import {
+    uploadDocument,
+    validateDocumentFile,
+} from "@/lib/api/documents";
 
 const recentDocuments = [
     {
@@ -35,8 +42,37 @@ const recentDocuments = [
 ];
 
 export default function DashboardPage() {
-    const { user } = useAuth();
+    const fileInputRef = useRef<HTMLInputElement>(null);
+    const { token, user } = useAuth();
+    const [uploading, setUploading] = useState(false);
     const displayName = user?.name?.split(" ")[0] ?? "there";
+
+    const handleUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+        const file = event.target.files?.[0];
+        event.target.value = "";
+        if (!file) return;
+
+        const validationError = validateDocumentFile(file);
+        if (validationError) {
+            toast.error(validationError);
+            return;
+        }
+        if (!token) {
+            toast.error("Your session has expired. Please sign in again.");
+            return;
+        }
+
+        setUploading(true);
+        const uploadToast = toast.loading("Uploading document...");
+        try {
+            await uploadDocument(file, token);
+            toast.success("Document uploaded successfully", { id: uploadToast });
+        } catch {
+            toast.error("Failed to upload document", { id: uploadToast });
+        } finally {
+            setUploading(false);
+        }
+    };
 
     return (
         <div className="mx-auto max-w-7xl">
@@ -51,13 +87,25 @@ export default function DashboardPage() {
                     </p>
                 </div>
 
-                <button
-                    type="button"
-                    className="inline-flex h-10 items-center justify-center gap-2 rounded-xl bg-brand-600 px-4 text-sm font-semibold text-white shadow-lg shadow-brand-600/20 transition hover:bg-brand-700"
-                >
-                    <Upload size={17} />
-                    Upload document
-                </button>
+                <div className="flex flex-col items-end gap-2">
+                    <button
+                        type="button"
+                        onClick={() => fileInputRef.current?.click()}
+                        disabled={uploading}
+                        className="inline-flex h-10 items-center justify-center gap-2 rounded-xl bg-brand-600 px-4 text-sm font-semibold text-white shadow-lg shadow-brand-600/20 transition hover:bg-brand-700 disabled:cursor-not-allowed disabled:opacity-60"
+                    >
+                        {uploading ? <Loader2 size={17} className="animate-spin" /> : <Upload size={17} />}
+                        {uploading ? "Uploading..." : "Upload document"}
+                    </button>
+
+                    <input
+                        ref={fileInputRef}
+                        type="file"
+                        accept=".pdf,.docx"
+                        className="hidden"
+                        onChange={(event) => void handleUpload(event)}
+                    />
+                </div>
             </div>
 
             <div className="mt-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
