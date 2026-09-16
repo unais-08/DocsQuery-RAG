@@ -5,8 +5,11 @@ import {
     HardDrive,
     Loader2,
     MessageCircle,
+    MoreVertical,
+    Send,
     Upload,
 } from "lucide-react";
+import { useRouter } from "next/navigation";
 import { useRef, useState } from "react";
 import { toast } from "sonner";
 
@@ -41,10 +44,18 @@ const recentDocuments = [
     },
 ];
 
+const suggestedQuestions = [
+    "Summarize this document",
+    "What are the key points?",
+    "Give me a detailed explanation",
+];
+
 export default function DashboardPage() {
     const fileInputRef = useRef<HTMLInputElement>(null);
+    const router = useRouter();
     const { token, user } = useAuth();
     const [uploading, setUploading] = useState(false);
+    const [question, setQuestion] = useState("");
     const displayName = user?.name?.split(" ")[0] ?? "there";
 
     const handleUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -72,6 +83,15 @@ export default function DashboardPage() {
         } finally {
             setUploading(false);
         }
+    };
+
+    // Doesn't answer anything here — just hands the question off to the
+    // Chat / Ask page (adjust the route below if yours differs).
+    const goToChat = () => {
+        const trimmed = question.trim();
+        router.push(
+            trimmed ? `/chat?q=${encodeURIComponent(trimmed)}` : "/chat"
+        );
     };
 
     return (
@@ -131,71 +151,183 @@ export default function DashboardPage() {
                 />
             </div>
 
-            <div className="mt-8 rounded-2xl border border-gray-200 bg-white shadow-docs-card">
-                <div className="flex items-center justify-between border-b border-gray-100 px-5 py-4">
-                    <div>
-                        <h2 className="font-semibold text-gray-950">
-                            Recent documents
-                        </h2>
+            <div className="mt-8 grid gap-6 lg:grid-cols-3">
+                {/* Recent documents — restyled as a table like the target design */}
+                <div className="rounded-2xl border border-gray-200 bg-white shadow-docs-card lg:col-span-2">
+                    <div className="flex items-center justify-between border-b border-gray-100 px-5 py-4">
+                        <div>
+                            <h2 className="font-semibold text-gray-950">
+                                Recent documents
+                            </h2>
 
-                        <p className="mt-0.5 text-xs text-gray-400">
-                            Your recently uploaded files
-                        </p>
+                            <p className="mt-0.5 text-xs text-gray-400">
+                                Your recently uploaded files
+                            </p>
+                        </div>
+
+                        <button
+                            type="button"
+                            className="text-sm font-medium text-brand-600 hover:text-brand-700"
+                        >
+                            View all
+                        </button>
+                    </div>
+
+                    {/* Table view — sm and up */}
+                    <div className="hidden overflow-x-auto sm:block">
+                        <table className="w-full text-left">
+                            <thead>
+                                <tr className="text-xs font-medium text-gray-400">
+                                    <th className="px-5 py-3 font-medium">Name</th>
+                                    <th className="px-5 py-3 font-medium">Type</th>
+                                    <th className="px-5 py-3 font-medium">Size</th>
+                                    <th className="px-5 py-3 font-medium">Uploaded</th>
+                                    <th className="px-5 py-3" />
+                                </tr>
+                            </thead>
+
+                            <tbody className="divide-y divide-gray-100">
+                                {recentDocuments.map((document) => (
+                                    <tr
+                                        key={document.name}
+                                        className="transition hover:bg-gray-50"
+                                    >
+                                        <td className="px-5 py-4">
+                                            <div className="flex min-w-0 items-center gap-3">
+                                                <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-brand-50 text-red-600">
+                                                    <FileText size={17} />
+                                                </div>
+
+                                                <p className="truncate text-sm font-medium text-gray-900">
+                                                    {document.name}
+                                                </p>
+                                            </div>
+                                        </td>
+
+                                        <td className="px-5 py-4 text-sm text-gray-500">
+                                            {document.type}
+                                        </td>
+
+                                        <td className="px-5 py-4 text-sm text-gray-500">
+                                            {document.size}
+                                        </td>
+
+                                        <td className="px-5 py-4 text-sm text-gray-500">
+                                            {document.uploaded}
+                                        </td>
+
+                                        <td className="px-5 py-4 text-right">
+                                            <button
+                                                type="button"
+                                                className="rounded-lg p-1.5 text-gray-400 hover:bg-gray-100 hover:text-gray-600"
+                                                aria-label={`More actions for ${document.name}`}
+                                            >
+                                                <MoreVertical size={16} />
+                                            </button>
+                                        </td>
+                                    </tr>
+                                ))}
+                            </tbody>
+                        </table>
+                    </div>
+
+                    {/* Stacked card view — below sm, where a table can't fit */}
+                    <div className="divide-y divide-gray-100 sm:hidden">
+                        {recentDocuments.map((document) => (
+                            <div
+                                key={document.name}
+                                className="flex items-center justify-between gap-3 px-5 py-4 transition hover:bg-gray-50"
+                            >
+                                <div className="flex min-w-0 items-center gap-3">
+                                    <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-brand-50 text-red-600">
+                                        <FileText size={19} />
+                                    </div>
+
+                                    <div className="min-w-0">
+                                        <p className="truncate text-sm font-medium text-gray-900">
+                                            {document.name}
+                                        </p>
+
+                                        <p className="mt-0.5 truncate text-xs text-gray-400">
+                                            {document.type} · {document.size} · {document.uploaded}
+                                        </p>
+                                    </div>
+                                </div>
+
+                                <button
+                                    type="button"
+                                    className="shrink-0 rounded-lg p-1.5 text-gray-400 hover:bg-gray-100 hover:text-gray-600"
+                                    aria-label={`More actions for ${document.name}`}
+                                >
+                                    <MoreVertical size={16} />
+                                </button>
+                            </div>
+                        ))}
+                    </div>
+                </div>
+
+                {/* Start a conversation — hands off to the Chat / Ask page rather than
+                    answering inline on the dashboard */}
+                <div className="rounded-2xl border border-gray-200 bg-white p-5 shadow-docs-card">
+                    <div className="flex items-center gap-2">
+                        <MessageCircle size={18} className="text-brand-600" />
+                        <h2 className="font-semibold text-gray-950">
+                            Start a Conversation
+                        </h2>
+                    </div>
+
+                    <p className="mt-1 text-xs text-gray-400">
+                        Ask questions about your documents.
+                    </p>
+
+                    <div className="mt-4 flex items-center gap-2">
+                        <input
+                            type="text"
+                            value={question}
+                            onChange={(event) => setQuestion(event.target.value)}
+                            onKeyDown={(event) => {
+                                if (event.key === "Enter") goToChat();
+                            }}
+                            placeholder="Type your question here..."
+                            className="h-10 w-full rounded-xl border border-gray-200 bg-gray-50 px-3 text-sm text-gray-900 placeholder:text-gray-400 focus:border-brand-500 focus:outline-none focus:ring-1 focus:ring-brand-500"
+                        />
+
+                        <button
+                            type="button"
+                            onClick={goToChat}
+                            aria-label="Go to Chat / Ask"
+                            className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-brand-600 text-white transition hover:bg-brand-700"
+                        >
+                            <Send size={16} />
+                        </button>
+                    </div>
+
+                    <div className="mt-4">
+                        <p className="text-xs text-gray-400">Try asking:</p>
+
+                        <div className="mt-2 flex flex-wrap gap-2">
+                            {suggestedQuestions.map((suggestion) => (
+                                <button
+                                    key={suggestion}
+                                    type="button"
+                                    onClick={() => setQuestion(suggestion)}
+                                    className="rounded-full bg-gray-50 px-3 py-1.5 text-xs font-medium text-gray-600 transition hover:bg-gray-100"
+                                >
+                                    {suggestion}
+                                </button>
+                            ))}
+                        </div>
                     </div>
 
                     <button
                         type="button"
-                        className="text-sm font-medium text-brand-600 hover:text-brand-700"
+                        onClick={goToChat}
+                        className="mt-4 inline-flex h-10 w-full items-center justify-center gap-2 rounded-xl border border-gray-200 text-sm font-semibold text-gray-700 transition hover:bg-gray-50"
                     >
-                        View all
+                        Go to Chat / Ask
                     </button>
-                </div>
-
-                <div className="divide-y divide-gray-100">
-                    {recentDocuments.map((document) => (
-                        <div
-                            key={document.name}
-                            className="flex items-center justify-between gap-4 px-5 py-4 transition hover:bg-gray-50"
-                        >
-                            <div className="flex min-w-0 items-center gap-3">
-                                <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-brand-50 text-red-600">
-                                    <FileText size={19} />
-                                </div>
-
-                                <div className="min-w-0">
-                                    <p className="truncate text-sm font-medium text-gray-900">
-                                        {document.name}
-                                    </p>
-
-                                    <p className="mt-0.5 text-xs text-gray-400">
-                                        {document.type} · {document.size} · {document.uploaded}
-                                    </p>
-                                </div>
-                            </div>
-
-                            <StatusBadge status={document.status} />
-                        </div>
-                    ))}
                 </div>
             </div>
         </div>
-    );
-}
-
-function StatusBadge({
-    status,
-}: {
-    status: string;
-}) {
-    const ready = status === "Ready";
-
-    return (
-        <span
-            className={`shrink-0 rounded-full px-2.5 py-1 text-xs font-medium ${
-                ready ? "bg-green-50 text-green-700" : "bg-blue-50 text-blue-700"
-            }`}
-        >
-            {status}
-        </span>
     );
 }
