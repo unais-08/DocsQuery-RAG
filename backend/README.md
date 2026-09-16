@@ -61,3 +61,19 @@ prisma/
 ```
 
 Add infrastructure checks to the readiness route as databases, vector stores, and model providers are introduced.
+
+Document endpoints require the same bearer token as the authentication
+endpoints:
+
+- `POST /api/v1/documents` uploads one PDF or DOCX file as multipart form data
+  (`file` is required and `name` is optional).
+- `GET /api/v1/documents` lists the authenticated user's documents and count.
+- `GET /api/v1/documents/stats` returns the authenticated user's document count.
+- `GET /api/v1/documents/:id` gets one of the authenticated user's documents.
+- `PATCH /api/v1/documents/:id` renames a document with `{ "name": "..." }`.
+- `DELETE /api/v1/documents/:id` deletes the database record and stored file.
+
+Uploaded files are stored locally in `UPLOAD_DIR` (default `./uploads`) with
+generated names. The storage adapter is isolated in
+`src/modules/documents/document.storage.ts` so it can later be replaced with
+cloud storage without changing the document API.

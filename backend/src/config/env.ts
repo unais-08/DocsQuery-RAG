@@ -10,7 +10,9 @@ const environmentSchema = z.object({
   CLIENT_ORIGIN: z.string().url().default('http://localhost:3000'),
   DATABASE_URL: z.string().url().default('postgresql://postgres:postgres@localhost:5432/querydocs?schema=public'),
   JWT_SECRET: z.string().min(32).default('change-this-development-secret-at-least-32-chars'),
-  JWT_EXPIRES_IN: z.string().default('1h')
+  JWT_EXPIRES_IN: z.string().default('1h'),
+  UPLOAD_DIR: z.string().default('./uploads'),
+  MAX_FILE_SIZE_MB: z.coerce.number().int().positive().default(10)
 });
 
 export const env = environmentSchema.parse(process.env);

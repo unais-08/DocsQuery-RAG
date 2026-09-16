@@ -2,6 +2,7 @@ import type { ErrorRequestHandler, RequestHandler } from 'express';
 import { ZodError } from 'zod';
 import { logger } from '../config/logger.js';
 import { AuthError } from '../modules/auth/auth.service.js';
+import { DocumentError } from '../modules/documents/document.errors.js';
 
 export const notFoundHandler: RequestHandler = (request, response) => {
   response.status(404).json({
@@ -25,6 +26,13 @@ export const errorHandler: ErrorRequestHandler = (error, _request, response, _ne
   }
 
   if (error instanceof AuthError) {
+    response.status(error.statusCode).json({
+      error: { code: error.code, message: error.message }
+    });
+    return;
+  }
+
+  if (error instanceof DocumentError) {
     response.status(error.statusCode).json({
       error: { code: error.code, message: error.message }
     });
