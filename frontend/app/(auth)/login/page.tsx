@@ -8,6 +8,11 @@ import { AuthShell } from "@/components/auth/auth-shell";
 import { AuthInput } from "@/components/auth/auth-input";
 import { useAuth } from "@/context/auth-context";
 
+const sampleCredentials = {
+    email: "sample@example.com",
+    password: "Pass@123",
+};
+
 export default function LoginPage() {
     const router = useRouter();
     const { login } = useAuth();
@@ -59,9 +64,13 @@ export default function LoginPage() {
         <AuthRedirect>
             <AuthShell mode="login">
                 <div>
-                    <h1 className="text-2xl font-bold tracking-tight text-gray-950">
-                        Welcome back
-                    </h1>
+                    <div className="flex items-start justify-between gap-4">
+                        <h1 className="text-2xl font-bold tracking-tight text-gray-950">
+                            Welcome back
+                        </h1>
+
+
+                    </div>
                 </div>
 
                 <form className="mt-6 space-y-4" onSubmit={handleSubmit}>
@@ -99,8 +108,16 @@ export default function LoginPage() {
                         className="h-11 w-full rounded-xl bg-brand-600 text-sm font-semibold text-white shadow-lg shadow-brand-600/20 transition hover:bg-brand-700 active:scale-[0.99] disabled:cursor-not-allowed disabled:opacity-70"
                     >
                         {isSubmitting ? "Signing in..." : "Sign in"}
+                    </button> <button
+                        type="button"
+                        onClick={() => setForm(sampleCredentials)}
+                        disabled={isSubmitting}
+                        className="text-xs font-semibold text-brand-600 transition hover:text-brand-700 disabled:cursor-not-allowed disabled:opacity-60"
+                    >
+                        Click here get test credentials
                     </button>
                 </form>
+
             </AuthShell>
         </AuthRedirect>
     );
