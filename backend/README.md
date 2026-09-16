@@ -14,6 +14,15 @@ npm run dev
 
 The API listens on `http://localhost:8080` by default.
 
+## Logging
+
+The backend uses Pino with concise request logs. Set `LOG_LEVEL` to control the
+minimum level (`debug`, `info`, `warn`, or `error`); it defaults to `info`.
+Application code should use `logger.info`, `logger.warn`, `logger.error`, and
+`logger.debug` from `src/config/logger.ts`. Request logs include only the HTTP
+method, route, status, and response time. Do not include request bodies,
+passwords, tokens, or other sensitive data in log fields.
+
 ## PostgreSQL and Prisma
 
 Start the local PostgreSQL database with Docker:

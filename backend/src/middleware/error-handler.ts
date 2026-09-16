@@ -15,6 +15,7 @@ export const notFoundHandler: RequestHandler = (request, response) => {
 
 export const errorHandler: ErrorRequestHandler = (error, _request, response, _next) => {
   if (error instanceof ZodError) {
+    logger.warn('Request validation failed');
     response.status(400).json({
       error: {
         code: 'VALIDATION_ERROR',
@@ -26,6 +27,7 @@ export const errorHandler: ErrorRequestHandler = (error, _request, response, _ne
   }
 
   if (error instanceof AuthError) {
+    logger.warn({ code: error.code }, `Authentication failed: ${error.message}`);
     response.status(error.statusCode).json({
       error: { code: error.code, message: error.message }
     });
@@ -33,6 +35,13 @@ export const errorHandler: ErrorRequestHandler = (error, _request, response, _ne
   }
 
   if (error instanceof DocumentError) {
+    if (error.code === 'FILE_DELETE_FAILED') {
+      logger.error({ code: error.code }, `Document delete failed: ${error.message}`);
+    } else if (error.statusCode >= 500) {
+      logger.error({ code: error.code }, `Document operation failed: ${error.message}`);
+    } else if (error.code !== 'DOCUMENT_NOT_FOUND') {
+      logger.warn({ code: error.code }, `Document upload failed: ${error.message}`);
+    }
     response.status(error.statusCode).json({
       error: { code: error.code, message: error.message }
     });
