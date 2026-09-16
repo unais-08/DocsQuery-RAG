@@ -24,24 +24,24 @@ export type AuthResponse = {
   token: string;
 };
 
-const AuthAPIPrefix = '/api/v1/auth'
+const AUTH_API_PREFIX = '/api/v1/auth'
 
 export async function loginUser(input: LoginInput): Promise<AuthResponse> {
-  return apiRequest<AuthResponse>(`${AuthAPIPrefix}/login`, {
+  return apiRequest<AuthResponse>(`${AUTH_API_PREFIX}/login`, {
     method: "POST",
     body: JSON.stringify(input),
   });
 }
 
 export async function registerUser(input: RegisterInput): Promise<AuthResponse> {
-  return apiRequest<AuthResponse>(`${AuthAPIPrefix}/register`, {
+  return apiRequest<AuthResponse>(`${AUTH_API_PREFIX}/register`, {
     method: "POST",
     body: JSON.stringify(input),
   });
 }
 
 export async function getCurrentUser(token: string): Promise<AuthUser> {
-  const response = await apiRequest<{ user: AuthUser }>(`${AuthAPIPrefix}/me`, {
+  const response = await apiRequest<{ user: AuthUser }>(`${AUTH_API_PREFIX}/me`, {
     method: "GET",
   }, token);
 
