@@ -7,6 +7,7 @@ import {
     TextChunker
 } from "./chunking/text-chunker.js";
 import { textCleaner } from "./cleaning/text-cleaner.js";
+import { createChunkEmbeddings } from "./embeddings/generate-embeddings.js";
 
 export class DocumentService {
     constructor(
@@ -26,14 +27,15 @@ export class DocumentService {
 
     async extractAndChunk(filePath: string): Promise<{
         characterCount: number;
-        chunks: TextChunk[];
+        chunks: Array<TextChunk & { embedding: number[] }>;
     }> {
         const extractedText = await this.extractText(filePath);
         const cleanedText = textCleaner.clean(extractedText);
+        const chunks = this.chunker.chunk(cleanedText);
 
         return {
             characterCount: cleanedText.length,
-            chunks: this.chunker.chunk(cleanedText)
+            chunks: await createChunkEmbeddings(chunks)
         };
     }
 }

@@ -1,4 +1,4 @@
-import { generateEmbedding } from "./embedding.service.js";
+import { generateEmbedding } from "./generate-embeddings.js";
 
 async function main() {
     const text =

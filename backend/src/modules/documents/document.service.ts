@@ -1,4 +1,3 @@
-import type { Express } from 'express';
 import { prisma } from '../../config/prisma.js';
 import { DocumentError } from './document.errors.js';
 import { removeStoredFile } from './document.storage.js';

@@ -3,6 +3,7 @@
 export interface TextChunk {
     index: number;
     text: string;
+    embedding?: number[];
 }
 
 export interface ChunkingOptions {

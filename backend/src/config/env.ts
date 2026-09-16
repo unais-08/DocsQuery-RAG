@@ -14,6 +14,8 @@ const environmentSchema = z.object({
   UPLOAD_DIR: z.string().default('./uploads'),
   MAX_FILE_SIZE_MB: z.coerce.number().int().positive().default(10),
   GEMINI_API_KEY: z.string().min(1, 'GEMINI_API_KEY is required'),
+  QDRANT_URL: z.string().url(),
+  QDRANT_API_KEY: z.string().min(1)
 });
 
 export const env = environmentSchema.parse(process.env);

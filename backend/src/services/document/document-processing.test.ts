@@ -3,6 +3,7 @@ import test from "node:test";
 
 import { TextCleaner } from "./cleaning/text-cleaner.js";
 import { TextChunker } from "./chunking/text-chunker.js";
+import { createChunkEmbeddings } from "./embeddings/generate-embeddings.js";
 
 const cleaner = new TextCleaner();
 
@@ -44,6 +45,20 @@ test("includes overlap text in consecutive chunks", () => {
 
     assert.ok(chunks.length > 1);
     assert.ok(chunks[1]?.text.includes("three"));
+});
+
+test("adds embeddings to each chunk payload", async () => {
+    const chunks = [
+        { index: 0, text: "first chunk" },
+        { index: 1, text: "second chunk" }
+    ];
+
+    const result = await createChunkEmbeddings(chunks, async (text) => [text.length]);
+
+    assert.deepEqual(result, [
+        { index: 0, text: "first chunk", embedding: [11] },
+        { index: 1, text: "second chunk", embedding: [12] }
+    ]);
 });
 
 test("rejects invalid chunking options", () => {
