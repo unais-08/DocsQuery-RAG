@@ -3,10 +3,59 @@ import { QDRANT_COLLECTION } from './qdrant.constant.js';
 
 export interface ChunkVector {
     id: string;
+
+    chunkId: string;
     userId: string;
     documentId: string;
     chunkIndex: number;
+    pageNumber: number | null;
     embedding: number[];
+}
+
+export interface ChunkVectorPoint {
+    id: string;
+    vector: number[];
+    payload: {
+        userId: string;
+        documentId: string;
+        chunkId: string;
+        chunkIndex: number;
+        pageNumber: number | null;
+    };
+}
+
+export function buildChunkVectorPoint(chunk: ChunkVector): ChunkVectorPoint {
+    return {
+        id: chunk.id,
+        vector: chunk.embedding,
+
+        payload: {
+            userId: chunk.userId,
+            documentId: chunk.documentId,
+            chunkId: chunk.chunkId,
+            chunkIndex: chunk.chunkIndex,
+            pageNumber: chunk.pageNumber,
+        },
+    };
+}
+
+export function createChunkVectorRecord(
+    chunkId: string,
+    documentId: string,
+    userId: string,
+    chunkIndex: number,
+    embedding: number[],
+    pageNumber: number | null = null,
+): ChunkVector {
+    return {
+        id: chunkId,
+        chunkId,
+        userId,
+        documentId,
+        chunkIndex,
+        pageNumber,
+        embedding,
+    };
 }
 
 export async function upsertChunkVectors(
@@ -18,18 +67,32 @@ export async function upsertChunkVectors(
 
     await qdrantClient.upsert(QDRANT_COLLECTION, {
         wait: true,
-        points: chunks.map((chunk) => ({
-            id: chunk.id,
+        points: chunks.map(buildChunkVectorPoint),
+    });
+}
 
-            vector: {
-                embedding: chunk.embedding,
-            },
+export async function deleteChunkVectorsForDocument(
+    documentId: string,
+    userId: string,
+): Promise<void> {
+    await qdrantClient.delete(QDRANT_COLLECTION, {
+        wait: true,
+        filter: {
+            must: [
+                { key: 'documentId', match: { value: documentId } },
+                { key: 'userId', match: { value: userId } },
+            ],
+        },
+    });
+}
 
-            payload: {
-                userId: chunk.userId,
-                documentId: chunk.documentId,
-                chunkIndex: chunk.chunkIndex,
-            },
-        })),
+export async function deleteChunkVectorsById(chunkIds: string[]): Promise<void> {
+    if (chunkIds.length === 0) {
+        return;
+    }
+
+    await qdrantClient.delete(QDRANT_COLLECTION, {
+        wait: true,
+        points: chunkIds,
     });
 }

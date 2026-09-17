@@ -1,6 +1,8 @@
+import { randomUUID } from 'node:crypto';
 import { prisma } from '../../config/prisma.js';
 import { DocumentError } from './document.errors.js';
 import { removeStoredFile } from './document.storage.js';
+import type { TextChunk } from '../../services/document/chunking/text-chunker.js';
 
 const documentSummary = {
   id: true,
@@ -118,6 +120,57 @@ export const deleteDocument = async (userId: string, id: string) => {
       'FILE_DELETE_FAILED'
     );
   }
+};
+
+export interface DocumentChunkRecord {
+  id: string;
+  documentId: string;
+  userId: string;
+  chunkIndex: number;
+  text: string;
+  pageNumber: number | null;
+}
+
+export const buildDocumentChunkRecords = (
+  documentId: string,
+  userId: string,
+  chunks: TextChunk[]
+): DocumentChunkRecord[] => chunks.map((chunk) => ({
+  id: randomUUID(),
+  documentId,
+  userId,
+  chunkIndex: chunk.index,
+  text: chunk.text,
+  pageNumber: chunk.pageNumber ?? null
+}));
+
+export const createDocumentChunks = async (
+  documentId: string,
+  userId: string,
+  chunks: TextChunk[]
+) => {
+  if (chunks.length === 0) {
+    return [] as DocumentChunkRecord[];
+  }
+
+  const records = buildDocumentChunkRecords(documentId, userId, chunks);
+
+  await prisma.documentChunk.createMany({
+    data: records.map(({ id, documentId, userId, chunkIndex, text, pageNumber }) => ({
+      id,
+      documentId,
+      userId,
+      chunkIndex,
+      text,
+      pageNumber
+    }))
+  });
+
+  return records;
+};
+
+export const deleteDocumentChunks = async (documentId: string) => {
+  await prisma.documentChunk.deleteMany({ where: { documentId } });
 };
 
 export const getDocumentStats = async (userId: string) => ({

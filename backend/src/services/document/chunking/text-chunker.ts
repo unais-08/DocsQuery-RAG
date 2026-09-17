@@ -3,6 +3,7 @@
 export interface TextChunk {
     index: number;
     text: string;
+    pageNumber?: number;
     embedding?: number[];
 }
 
@@ -26,7 +27,7 @@ export class TextChunker {
         this.options = options;
     }
 
-    chunk(text: string): TextChunk[] {
+    chunk(text: string, pageNumber?: number): TextChunk[] {
         const trimmedText = text.trim();
         if (trimmedText.length === 0) {
             return [];
@@ -44,7 +45,11 @@ export class TextChunker {
             const chunkText = trimmedText.slice(start, end).trim();
 
             if (chunkText.length > 0) {
-                chunks.push({ index: chunks.length, text: chunkText });
+                chunks.push({
+                    index: chunks.length,
+                    text: chunkText,
+                    ...(pageNumber === undefined ? {} : { pageNumber })
+                });
             }
 
             if (end >= trimmedText.length) {

@@ -14,27 +14,38 @@ export class DocumentService {
         private readonly chunker = new TextChunker(defaultChunkingOptions)
     ) {}
 
-    async extractText(filePath: string): Promise<string> {
+    async extractText(filePath: string) {
         const extension = path.extname(filePath).toLowerCase();
 
         const extractor =
             DocumentExtractorFactory.getExtractor(extension);
 
-        const text = await extractor.extract(filePath);
-
-        return text;
+        return extractor.extract(filePath);
     }
 
     async extractAndChunk(filePath: string): Promise<{
         characterCount: number;
         chunks: Array<TextChunk & { embedding: number[] }>;
     }> {
-        const extractedText = await this.extractText(filePath);
-        const cleanedText = textCleaner.clean(extractedText);
-        const chunks = this.chunker.chunk(cleanedText);
+        const extractedPages = await this.extractText(filePath);
+        const chunks: TextChunk[] = [];
+        let characterCount = 0;
+
+        for (const page of extractedPages) {
+            const cleanedText = textCleaner.clean(page.text);
+            characterCount += cleanedText.length;
+
+            const pageChunks = this.chunker.chunk(cleanedText, page.pageNumber);
+            chunks.push(
+                ...pageChunks.map((chunk, pageChunkIndex) => ({
+                    ...chunk,
+                    index: chunks.length + pageChunkIndex
+                }))
+            );
+        }
 
         return {
-            characterCount: cleanedText.length,
+            characterCount,
             chunks: await createChunkEmbeddings(chunks)
         };
     }

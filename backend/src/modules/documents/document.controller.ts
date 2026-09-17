@@ -1,45 +1,91 @@
 import type { NextFunction, Request, Response } from 'express';
 import { removeStoredFile } from './document.storage.js';
-import { createDocument, deleteDocument, getDocument, getDocumentStats, listDocuments, renameDocument } from './document.service.js';
+import {
+  createDocument,
+  createDocumentChunks,
+  deleteDocument,
+  deleteDocumentChunks,
+  getDocument,
+  getDocumentStats,
+  listDocuments,
+  renameDocument,
+} from './document.service.js';
 import { documentIdSchema, renameDocumentSchema, uploadDocumentFieldsSchema } from './document.validation.js';
 import { DocumentError } from './document.errors.js';
 import { documentService } from '../../services/document/document.service.js';
 import { logger } from '../../config/logger.js';
-import { upsertChunkVectors } from '../../services/Qdrant/qdrant.service.js';
+import {
+  deleteChunkVectorsById,
+  deleteChunkVectorsForDocument,
+  upsertChunkVectors,
+} from '../../services/Qdrant/qdrant.service.js';
+import { prisma } from '../../config/prisma.js';
 
 
 export const upload = async (request: Request, response: Response, next: NextFunction) => {
   let documentCreated = false;
+  let createdDocumentId: string | null = null;
+  let createdChunkIds: string[] = [];
+
   try {
     if (!request.file) {
       throw new DocumentError('A document file is required', 400, 'FILE_REQUIRED');
     }
+
     const fields = uploadDocumentFieldsSchema.parse(request.body);
     const result = await createDocument(request.userId, request.file, fields.name);
+    const documentId = result.document.id;
+    createdDocumentId = documentId;
+    documentCreated = true;
+
     const filePath = request.file.path;
     const processedDocument = await documentService.extractAndChunk(filePath);
-    const chunkVectors = processedDocument.chunks.map((chunk) => ({
-      id: `${result.document.id}-${chunk.index}`,
-      userId: request.userId,
-      documentId: result.document.id,
-      chunkIndex: chunk.index,
-      embedding: chunk.embedding,
-    }));
+    const storedChunks = await createDocumentChunks(documentId, request.userId, processedDocument.chunks);
+    createdChunkIds = storedChunks.map((chunk) => chunk.id);
+
+    const chunkVectors = processedDocument.chunks.map((chunk) => {
+      const storedChunk = storedChunks.find((stored) => stored.chunkIndex === chunk.index);
+
+      if (!storedChunk) {
+        throw new Error(`Missing stored chunk for index ${chunk.index}`);
+      }
+
+      return {
+        id: storedChunk.id,
+        chunkId: storedChunk.id,
+        userId: request.userId,
+        documentId,
+        chunkIndex: chunk.index,
+        pageNumber: chunk.pageNumber ?? null,
+        embedding: chunk.embedding,
+      };
+    });
+
     await upsertChunkVectors(chunkVectors);
-    documentCreated = true;
+
     logger.info(
       {
-        documentId: result.document.id,
+        documentId: createdDocumentId,
         characterCount: processedDocument.characterCount,
-        chunkCount: processedDocument.chunks.length
+        chunkCount: processedDocument.chunks.length,
+        storedChunkCount: storedChunks.length,
       },
-      'Document extracted, cleaned, and chunked'
+      'Document extracted, chunked, stored, and vectorized'
     );
+
     response.status(201).json(result);
   } catch (error) {
-    if (request.file && !documentCreated) {
-      await removeStoredFile(request.file.path);
+    if (createdDocumentId) {
+      await deleteChunkVectorsById(createdChunkIds).catch(() => undefined);
+      await deleteChunkVectorsForDocument(createdDocumentId, request.userId).catch(() => undefined);
+      await deleteDocumentChunks(createdDocumentId).catch(() => undefined);
+      await prisma.document.delete({ where: { id: createdDocumentId } }).catch(() => undefined);
     }
+
+    if (request.file && !documentCreated) {
+      await removeStoredFile(request.file.path).catch(() => undefined);
+    }
+
     next(error);
   }
 };
