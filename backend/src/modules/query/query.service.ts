@@ -1,6 +1,7 @@
 import { logger } from "../../config/logger.js";
 import { prisma } from "../../config/prisma.js";
 import { generateEmbedding } from "../../services/document/embeddings/generate-embeddings.js";
+import { generateAnswer } from "../../services/llm/generate-answer.js";
 import {
     searchSimilarChunks,
     SimilarChunkResult,
@@ -74,10 +75,20 @@ export const retrieveRelevantChunks = async (
     logger.debug(`now goes to searchSimilarChunks with embedding of length ${questionEmbedding.length} for userId: ${userId}`);
     const results = await searchSimilarChunks(questionEmbedding, userId);
     const retrievedChunks = await getChunksForQueryResults(results, userId);
+    const context = buildContext(retrievedChunks);
+    const answer = await generateAnswer(question, context);
 
     return {
         question,
-        context: buildContext(retrievedChunks),
-        results: retrievedChunks,
+        answer,
+        // context,
+        sources: retrievedChunks.map(({ chunkId, documentId, documentName, pageNumber, score }) => ({
+            chunkId,
+            documentId,
+            documentName,
+            pageNumber,
+            score,
+        })),
+        // results: retrievedChunks,
     };
 };
