@@ -1,15 +1,7 @@
-import { GoogleGenAI } from "@google/genai";
-import { env } from "../../../config/env.js";
 import { logger } from "../../../config/logger.js";
 import type { TextChunk } from "../chunking/text-chunker.js";
+import { geminiClient as ai } from "../../llm/gemini.client.js";
 
-const apiKey = env.GEMINI_API_KEY;
-
-if (!apiKey) {
-    throw new Error("GEMINI_API_KEY is not configured");
-}
-
-const ai = new GoogleGenAI({ apiKey });
 
 export type EmbeddingGenerator = (text: string) => Promise<number[]>;
 
