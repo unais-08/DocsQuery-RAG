@@ -1,11 +1,11 @@
 import { logger } from "../../config/logger.js";
 import { prisma } from "../../config/prisma.js";
-import { generateEmbedding } from "../../services/document/embeddings/generate-embeddings.js";
-import { generateAnswer } from "../../services/llm/generate-answer.js";
+import { generateEmbedding } from "../../infrastructure/document-processing/embeddings/generate-embeddings.js";
+import { generateAnswer } from "../../infrastructure/llm/generate-answer.js";
 import {
     searchSimilarChunks,
-    SimilarChunkResult,
-} from "../../services/Qdrant/qdrant.service.js";
+    type SimilarChunkResult,
+} from "../../infrastructure/vector-store/qdrant.service.js";
 import { buildContext } from "./context-builder.js";
 
 export interface RetrievedChunk {
@@ -18,6 +18,17 @@ export interface RetrievedChunk {
     score: number;
 }
 
+type DocumentChunkRow = {
+    id: string;
+    documentId: string;
+    text: string;
+    chunkIndex: number;
+    pageNumber: number | null;
+    document: {
+        name: string;
+    };
+};
+
 export const getChunksForQueryResults = async (
     results: SimilarChunkResult[],
     userId: string
@@ -26,7 +37,8 @@ export const getChunksForQueryResults = async (
         return [];
     }
 
-    const chunks = await prisma.documentChunk.findMany({
+    // Qdrant returns the most similar chunk IDs; fetch the actual text and metadata from Postgres.
+    const chunks = (await prisma.documentChunk.findMany({
         where: {
             id: { in: results.map((result) => result.chunkId) },
             document: { userId },
@@ -43,7 +55,7 @@ export const getChunksForQueryResults = async (
                 },
             },
         },
-    });
+    })) as DocumentChunkRow[];
 
     const chunksById = new Map(chunks.map((chunk) => [chunk.id, chunk]));
 

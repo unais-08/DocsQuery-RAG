@@ -12,13 +12,13 @@ import {
 } from './document.service.js';
 import { documentIdSchema, renameDocumentSchema, uploadDocumentFieldsSchema } from './document.validation.js';
 import { DocumentError } from './document.errors.js';
-import { documentService } from '../../services/document/document.service.js';
+import { documentService } from '../../infrastructure/document-processing/document.service.js';
 import { logger } from '../../config/logger.js';
 import {
   deleteChunkVectorsById,
   deleteChunkVectorsForDocument,
   upsertChunkVectors,
-} from '../../services/Qdrant/qdrant.service.js';
+} from '../../infrastructure/vector-store/qdrant.service.js';
 import { prisma } from '../../config/prisma.js';
 
 

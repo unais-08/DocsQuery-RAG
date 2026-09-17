@@ -1,8 +1,8 @@
 import { randomUUID } from 'node:crypto';
 import { prisma } from '../../config/prisma.js';
+import type { TextChunk } from '../../infrastructure/document-processing/chunking/text-chunker.js';
 import { DocumentError } from './document.errors.js';
 import { removeStoredFile } from './document.storage.js';
-import type { TextChunk } from '../../services/document/chunking/text-chunker.js';
 
 const documentSummary = {
   id: true,
