@@ -14,6 +14,7 @@ TypeScript and Express API for the QueryDocs document Q&A platform. The backend 
 npm install
 copy .env.example .env
 
+# Edit .env and set GEMINI_API_KEY, QDRANT_URL, and QDRANT_API_KEY.
 docker compose up -d postgres
 npm run db:generate
 npm run db:deploy
@@ -23,6 +24,19 @@ npm run dev
 On macOS or Linux, use `cp .env.example .env` instead of `copy .env.example .env`.
 
 The API listens on `http://localhost:8080` by default, unless `PORT` is changed in the environment configuration.
+
+The server validates the environment on startup. `GEMINI_API_KEY`, `QDRANT_URL`, and `QDRANT_API_KEY` must be set before starting the API. The default Qdrant configuration expects a reachable Qdrant instance; Docker Compose only starts PostgreSQL.
+
+## Environment configuration
+
+The available variables are documented in `.env.example`. Common settings include:
+
+- `API_PREFIX` sets the API base path (default `/api/v1`).
+- `CLIENT_ORIGIN` sets the allowed browser origin (default `http://localhost:3000`).
+- `UPLOAD_DIR` sets the local upload directory (default `./uploads`).
+- `MAX_FILE_SIZE_MB` limits uploaded files (default `10`).
+- `JWT_SECRET` must be at least 32 characters and should be replaced in production.
+- `GEMINI_API_KEY`, `QDRANT_URL`, and `QDRANT_API_KEY` configure the embedding and vector-search services.
 
 
 ## PostgreSQL and Prisma
@@ -77,7 +91,6 @@ Request logs stay intentionally minimal and should never include request bodies,
 
 - `GET /` returns API metadata.
 - `GET /api/v1/health/live` checks that the HTTP server is running.
-- `GET /api/v1/health/ready` checks the readiness status for traffic.
 
 ### Authentication
 
@@ -109,7 +122,8 @@ All document routes require a valid bearer token.
 - `POST /api/v1/documents` uploads a file as multipart form data.
   - Form field is `file`.
   - Optional form field is `name`.
-  - Supported file types are handled by the document extraction pipeline.
+  - Supported file types are `.txt`, `.pdf`, and `.docx`.
+  - The maximum file size is controlled by `MAX_FILE_SIZE_MB`.
 - `GET /api/v1/documents` lists the authenticated user's documents and count.
 - `GET /api/v1/documents/stats` returns the authenticated user's document count.
 - `GET /api/v1/documents/:id` fetches one document owned by the user.
@@ -122,7 +136,21 @@ All document routes require a valid bearer token.
   ```
 - `DELETE /api/v1/documents/:id` deletes the document record and removes the stored file.
 
-Uploaded files are stored locally in `UPLOAD_DIR` (default `./uploads`) with generated filenames. The storage layer is isolated in `src/modules/documents/document.storage.ts` so it can later be replaced with cloud storage without changing the document API.
+Uploaded files are stored locally in `UPLOAD_DIR` (default `./uploads`) with generated filenames. The storage layer is isolated in `src/modules/documents/file-storage.ts` so it can later be replaced with cloud storage without changing the document API.
+
+### Queries
+
+All query routes require a valid bearer token.
+
+- `POST /api/v1/query` asks a question against the authenticated user's document chunks.
+  Request body:
+  ```json
+  {
+    "question": "What does this document say?"
+  }
+  ```
+
+If Gemini or the embedding service is unavailable, the API returns `503 Service Unavailable` with the error code `AI_SERVICE_UNAVAILABLE`. Clients can retry the request later; provider details are logged on the server and are not returned to clients.
 
 ## Project structure
 
@@ -130,9 +158,9 @@ Uploaded files are stored locally in `UPLOAD_DIR` (default `./uploads`) with gen
 src/
   config/       Environment parsing, Prisma setup, and logging
   middleware/   Express middleware, auth checks, and error handling
-  modules/      Auth and document feature modules
-  routes/       Route registration for top-level endpoints
-  services/     Shared application services
+  modules/      Feature modules with routes, controllers, validation, and services
+  infrastructure/
+                Document processing, embeddings, Gemini, and Qdrant integrations
   types/        Shared TypeScript types
 prisma/
   schema.prisma
@@ -141,6 +169,6 @@ prisma/
 
 ## Notes
 
-- The ready endpoint is intentionally lightweight and can be extended with database, vector store, and model-provider checks as those services are introduced.
+- The live endpoint only confirms that the HTTP server is running.
 - The application does not expose secret values in logs or responses.
 - Production deployments should use a strong, unique `JWT_SECRET` and a secure PostgreSQL connection string.

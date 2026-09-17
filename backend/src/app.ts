@@ -1,26 +1,30 @@
 import cors from 'cors';
 import express from 'express';
 import helmet from 'helmet';
+
 import { env } from './config/env.js';
 
 import { requestLogger } from './middleware/request-logger.js';
 import { errorHandler, notFoundHandler } from './middleware/error-handler.js';
-import { healthRouter } from './routes/health.routes.js';
+
 import { authRouter } from './modules/auth/auth.routes.js';
 import { documentRouter } from './modules/documents/document.routes.js';
 import { queryRouter } from './modules/query/query.routes.js';
+import { healthRouter } from './modules/health/health.routes.js'; 
 
 const app = express();
 
-app.disable('x-powered-by');
-app.use(requestLogger);
-app.use(helmet());
-app.use(cors({
+const corsConfig = {
   origin: env.CLIENT_ORIGIN,
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization']
-}));
+}
+
+app.disable('x-powered-by');
+app.use(requestLogger);
+app.use(helmet());
+app.use(cors(corsConfig));
 app.use(express.json({ limit: '1mb' }));
 app.use(express.urlencoded({ extended: true }));
 
