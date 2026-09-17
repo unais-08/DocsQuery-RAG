@@ -1,7 +1,7 @@
 import { logger } from "../../config/logger.js";
 import { prisma } from "../../config/prisma.js";
 import { generateEmbedding } from "../../infrastructure/document-processing/embeddings/generate-embeddings.js";
-import { generateAnswer } from "../../infrastructure/llm/generate-answer.js";
+import { generateAnswer } from "../../infrastructure/llm/generate.answer.js";
 import {
     searchSimilarChunks,
     type SimilarChunkResult,
@@ -85,6 +85,7 @@ export const queryDocuments = async (
     const questionEmbedding = await generateEmbedding(question);
 
     logger.debug(`now goes to searchSimilarChunks with embedding of length ${questionEmbedding.length} for userId: ${userId}`);
+    // Qdrant filtering and the Postgres ownership check both enforce user isolation.
     const results = await searchSimilarChunks(questionEmbedding, userId);
     const retrievedChunks = await getChunksForQueryResults(results, userId);
     const context = buildContext(retrievedChunks);

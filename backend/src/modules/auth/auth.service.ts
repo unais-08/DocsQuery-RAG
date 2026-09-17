@@ -1,5 +1,6 @@
 import bcrypt from 'bcryptjs';
 import jwt, { type SignOptions } from 'jsonwebtoken';
+
 import { env } from '../../config/env.js';
 import { prisma } from '../../config/prisma.js';
 

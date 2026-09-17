@@ -1,1 +1,7 @@
-export { qdrantClient } from '../../services/Qdrant/qdrantClient.js';
+import { QdrantClient } from '@qdrant/js-client-rest';
+import { env } from '../../config/env.js';
+
+export const qdrantClient = new QdrantClient({
+	url: env.QDRANT_URL,
+	apiKey: env.QDRANT_API_KEY
+});

@@ -3,6 +3,7 @@ import { ZodError } from 'zod';
 import { logger } from '../config/logger.js';
 import { AuthError } from '../modules/auth/auth.service.js';
 import { DocumentError } from '../modules/documents/document.errors.js';
+import { AiServiceError } from '../infrastructure/llm/llm.errors.js';
 
 export const notFoundHandler: RequestHandler = (request, response) => {
   response.status(404).json({
@@ -44,6 +45,17 @@ export const errorHandler: ErrorRequestHandler = (error, _request, response, _ne
     }
     response.status(error.statusCode).json({
       error: { code: error.code, message: error.message }
+    });
+    return;
+  }
+
+  if (error instanceof AiServiceError) {
+    logger.error({ err: error }, 'AI service request failed');
+    response.status(503).json({
+      error: {
+        code: 'AI_SERVICE_UNAVAILABLE',
+        message: error.message
+      }
     });
     return;
   }

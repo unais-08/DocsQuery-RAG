@@ -2,8 +2,9 @@ import { randomUUID } from 'node:crypto';
 import { prisma } from '../../config/prisma.js';
 import type { TextChunk } from '../../infrastructure/document-processing/chunking/text-chunker.js';
 import { DocumentError } from './document.errors.js';
-import { removeStoredFile } from './document.storage.js';
+import { removeStoredFile } from './file-storage.js';
 
+// Keep API responses consistent and avoid exposing internal document fields.
 const documentSummary = {
   id: true,
   name: true,
@@ -13,6 +14,7 @@ const documentSummary = {
   updatedAt: true
 } as const;
 
+// Map database fields to the public API response format.
 const toDocumentResponse = (document: {
   id: string;
   name: string;
@@ -54,6 +56,7 @@ export const createDocument = async (
       }
     };
   } catch (error) {
+    // Remove the uploaded file if its database record could not be created.
     await removeStoredFile(file.path);
     throw error;
   }
@@ -73,6 +76,7 @@ export const listDocuments = async (userId: string) => {
 };
 
 export const getDocument = async (userId: string, id: string) => {
+  // Scope the lookup by userId so users cannot access another user's document.
   const document = await prisma.document.findFirst({
     where: { id, userId },
     select: { ...documentSummary, originalFileName: true }
@@ -112,6 +116,7 @@ export const deleteDocument = async (userId: string, id: string) => {
 
   await prisma.document.delete({ where: { id: document.id } });
   try {
+    // Delete the physical file after removing its database record.
     await removeStoredFile(document.filePath);
   } catch {
     throw new DocumentError(
@@ -131,6 +136,7 @@ export interface DocumentChunkRecord {
   pageNumber: number | null;
 }
 
+// Convert processed chunks into database-ready records with stable IDs.
 export const buildDocumentChunkRecords = (
   documentId: string,
   userId: string,
@@ -155,6 +161,7 @@ export const createDocumentChunks = async (
 
   const records = buildDocumentChunkRecords(documentId, userId, chunks);
 
+  // Store chunk text and metadata in PostgreSQL; embeddings are stored separately in Qdrant.
   await prisma.documentChunk.createMany({
     data: records.map(({ id, documentId, userId, chunkIndex, text, pageNumber }) => ({
       id,

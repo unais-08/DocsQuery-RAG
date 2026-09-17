@@ -1,5 +1,5 @@
 import type { NextFunction, Request, Response } from 'express';
-import { removeStoredFile } from './document.storage.js';
+import { removeStoredFile } from './file-storage.js';
 import {
   createDocument,
   createDocumentChunks,
@@ -10,9 +10,9 @@ import {
   listDocuments,
   renameDocument,
 } from './document.service.js';
-import { documentIdSchema, renameDocumentSchema, uploadDocumentFieldsSchema } from './document.validation.js';
+import { documentIdSchema, renameDocumentSchema, uploadDocumentFieldsSchema } from './document.schemas.js';
 import { DocumentError } from './document.errors.js';
-import { documentService } from '../../infrastructure/document-processing/document.service.js';
+import { documentProcessingService } from '../../infrastructure/document-processing/document.processing.service.js';
 import { logger } from '../../config/logger.js';
 import {
   deleteChunkVectorsById,
@@ -38,11 +38,15 @@ export const upload = async (request: Request, response: Response, next: NextFun
     createdDocumentId = documentId;
     documentCreated = true;
 
+    // Extract, clean, chunk, and generate embeddings for the uploaded document.
     const filePath = request.file.path;
-    const processedDocument = await documentService.extractAndChunk(filePath);
+    const processedDocument = await documentProcessingService.extractAndChunk(filePath);
+
+    // Store chunk text in PostgreSQL; vectors are stored separately in Qdrant.
     const storedChunks = await createDocumentChunks(documentId, request.userId, processedDocument.chunks);
     createdChunkIds = storedChunks.map((chunk) => chunk.id);
 
+    // Link each generated embedding to its corresponding database chunk.
     const chunkVectors = processedDocument.chunks.map((chunk) => {
       const storedChunk = storedChunks.find((stored) => stored.chunkIndex === chunk.index);
 
@@ -61,6 +65,7 @@ export const upload = async (request: Request, response: Response, next: NextFun
       };
     });
 
+    // Store embeddings in Qdrant for semantic similarity search.
     await upsertChunkVectors(chunkVectors);
 
     logger.info(
@@ -75,6 +80,7 @@ export const upload = async (request: Request, response: Response, next: NextFun
 
     response.status(201).json(result);
   } catch (error) {
+    // Roll back PostgreSQL, Qdrant, and file data if ingestion fails midway.
     if (createdDocumentId) {
       await deleteChunkVectorsById(createdChunkIds).catch(() => undefined);
       await deleteChunkVectorsForDocument(createdDocumentId, request.userId).catch(() => undefined);

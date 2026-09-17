@@ -1,1 +1,1 @@
-export { QDRANT_COLLECTION } from '../../services/Qdrant/qdrant.constant.js';
+export const QDRANT_COLLECTION = 'docsquery_chunks';

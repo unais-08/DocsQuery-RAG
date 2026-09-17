@@ -49,8 +49,6 @@ export const removeStoredFile = async (filePath: string): Promise<void> => {
     await unlink(filePath);
   } catch (error) {
     const code = (error as NodeJS.ErrnoException).code;
-    if (code !== 'ENOENT') {
-      throw error;
-    }
+    if (code !== 'ENOENT') throw error;
   }
 };
