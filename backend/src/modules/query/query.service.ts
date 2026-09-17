@@ -5,6 +5,7 @@ import {
     searchSimilarChunks,
     SimilarChunkResult,
 } from "../../services/Qdrant/qdrant.service.js";
+import { buildContext } from "./context-builder.js";
 
 export interface RetrievedChunk {
     chunkId: string;
@@ -76,6 +77,7 @@ export const retrieveRelevantChunks = async (
 
     return {
         question,
+        context: buildContext(retrievedChunks),
         results: retrievedChunks,
     };
 };
