@@ -66,7 +66,7 @@ export const getChunksForQueryResults = async (
     });
 };
 
-export const retrieveRelevantChunks = async (
+export const queryDocuments = async (
     question: string,
     userId: string
 ) => {
