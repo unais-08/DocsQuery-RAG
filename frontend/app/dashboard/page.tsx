@@ -88,9 +88,9 @@ export default function DashboardPage() {
     // Doesn't answer anything here — just hands the question off to the
     // Chat / Ask page (adjust the route below if yours differs).
     const goToChat = () => {
-        const trimmed = question.trim();
+
         router.push(
-            trimmed ? `/chat?q=${encodeURIComponent(trimmed)}` : "/chat"
+            "/dashboard/chat"
         );
     };
 
