@@ -11,10 +11,10 @@ type ChatMessagesProps = {
     messages: ChatMessage[];
     isSending: boolean;
     scrollRef: RefObject<HTMLDivElement | null>;
-    onRegenerate: (id: number) => void;
+    onRegenerate: (id: string) => void;
     onCopy: (content: string) => void;
-    onToggleSources: (id: number) => void;
-    onFeedback: (id: number, value: Feedback) => void;
+    onToggleSources: (id: string) => void;
+    onFeedback: (id: string, value: Feedback) => void;
 };
 
 const markdownClasses =
@@ -110,7 +110,7 @@ function MessageSources({
     isOpen,
     onToggle,
 }: {
-    sources: string[];
+    sources: NonNullable<ChatMessage["sources"]>;
     isOpen: boolean;
     onToggle: () => void;
 }) {
@@ -127,10 +127,10 @@ function MessageSources({
                 <ul className="mt-2 space-y-1">
                     {sources.map((source,idx) => (
                         <li 
-                            key={source + idx}
+                            key={source.chunkId + idx}
                             className="rounded-docs-sm bg-docs-blue-50 px-2.5 py-1 text-xs text-docs-blue-700"
                         >
-                            {source}
+                            {source.documentName}{source.pageNumber ? `, p. ${source.pageNumber}` : ""}
                         </li>
                     ))}
                 </ul>

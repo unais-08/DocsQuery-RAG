@@ -1,6 +1,7 @@
 import { z } from "zod";
 
 export const querySchema = z.object({
+    conversationId: z.string().trim().min(1, "Conversation ID is required"),
     question: z
         .string()
         .trim()

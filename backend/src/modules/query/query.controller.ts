@@ -8,8 +8,8 @@ export const query = async (
     next: NextFunction
 ) => {
     try {
-        const { question } = querySchema.parse(request.body);
-        const result = await queryDocuments(question, request.userId);
+        const { conversationId, question } = querySchema.parse(request.body);
+        const result = await queryDocuments(conversationId, question, request.userId);
 
         response.status(200).json(result);
     } catch (error) {

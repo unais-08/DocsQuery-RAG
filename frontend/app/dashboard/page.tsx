@@ -157,20 +157,9 @@ export default function DashboardPage() {
                     <div className="flex items-center justify-between border-b border-gray-100 px-5 py-4">
                         <div>
                             <h2 className="font-semibold text-gray-950">
-                                Recent documents
+                                Sample documents
                             </h2>
-
-                            <p className="mt-0.5 text-xs text-gray-400">
-                                Your recently uploaded files
-                            </p>
                         </div>
-
-                        <button
-                            type="button"
-                            className="text-sm font-medium text-brand-600 hover:text-brand-700"
-                        >
-                            View all
-                        </button>
                     </div>
 
                     {/* Table view — sm and up */}
