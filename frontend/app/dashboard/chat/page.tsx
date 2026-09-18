@@ -1,22 +1,12 @@
 "use client";
 
 import { useEffect, useRef, useState, type ChangeEvent, type FormEvent, type KeyboardEvent } from "react";
-import {
-    FileText,
-    Plus,
-    Paperclip,
-    Send,
-    Copy,
-    RefreshCw,
-    ThumbsUp,
-    ThumbsDown,
-    X,
-    Sparkles,
-    MessageSquare,
-} from "lucide-react";
 import { toast } from "sonner";
-import ReactMarkdown from "react-markdown";
-import remarkGfm from "remark-gfm";
+
+import { ChatComposer } from "@/components/dashboard/chat/chat-composer";
+import { ChatDocumentToolbar } from "@/components/dashboard/chat/chat-document-toolbar";
+import { ChatMessages } from "@/components/dashboard/chat/chat-messages";
+import type { ChatMessage, DocSource, Feedback } from "@/components/dashboard/chat/chat-types";
 import { useAuth } from "@/context/auth-context";
 import {
     getDocuments,
@@ -25,23 +15,6 @@ import {
     type Document,
 } from "@/lib/api/documents";
 import { queryDocuments } from "@/lib/api/query";
-
-type Feedback = "up" | "down" | null;
-
-type ChatMessage = {
-    id: number;
-    role: "user" | "assistant";
-    content: string;
-    sources?: string[];
-    sourcesOpen?: boolean;
-    feedback?: Feedback;
-};
-
-type DocSource = {
-    id: string;
-    name: string;
-    size: string;
-};
 
 function toDocSource(document: Document): DocSource {
     return {
@@ -61,13 +34,12 @@ function nextId(): number {
     return messageIdCounter;
 }
 
-// Adjust to match your <Navbar /> height so the chat fills the rest of
-// the viewport exactly. Tailwind's default h-16 (used in most dashboard
-// navbars) is 4rem — change the literal below if yours differs.
 const CHAT_HEIGHT_CLASS = "h-[calc(100dvh-4rem)]";
 
 export default function DocsChatPage() {
     const { token, loading: authLoading } = useAuth();
+
+    // State
     const [messages, setMessages] = useState<ChatMessage[]>([]);
     const [input, setInput] = useState("");
     const [isSending, setIsSending] = useState(false);
@@ -79,6 +51,7 @@ export default function DocsChatPage() {
     const textareaRef = useRef<HTMLTextAreaElement>(null);
     const fileInputRef = useRef<HTMLInputElement>(null);
 
+    // Data fetching and textarea behavior
     useEffect(() => {
         if (!token) return;
 
@@ -103,28 +76,27 @@ export default function DocsChatPage() {
         scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight, behavior: "smooth" });
     }, [messages, isSending]);
 
-    // Auto-grow the textarea as the person types, capped so it never
-    // pushes the send button off screen; resets on clear/send too.
     useEffect(() => {
-        const el = textareaRef.current;
-        if (!el) return;
-        el.style.height = "auto";
-        el.style.height = `${Math.min(el.scrollHeight, 160)}px`;
+        const element = textareaRef.current;
+        if (!element) return;
+        element.style.height = "auto";
+        element.style.height = `${Math.min(element.scrollHeight, 160)}px`;
     }, [input]);
 
+    // Event handlers
     async function runQuery(query: string) {
         if (!query.trim() || documents.length === 0 || !token || isSending) return;
 
         const question = query.trim();
         const userMessage: ChatMessage = { id: nextId(), role: "user", content: question };
-        setMessages((prev) => [...prev, userMessage]);
+        setMessages((previous) => [...previous, userMessage]);
         setInput("");
         setIsSending(true);
 
         try {
             const result = await queryDocuments({ question }, token);
-            setMessages((prev) => [
-                ...prev,
+            setMessages((previous) => [
+                ...previous,
                 {
                     id: nextId(),
                     role: "assistant",
@@ -143,43 +115,48 @@ export default function DocsChatPage() {
         }
     }
 
-    function handleSubmit(e: FormEvent) {
-        e.preventDefault();
-        runQuery(input);
+    function handleSubmit(event: FormEvent<HTMLFormElement>) {
+        event.preventDefault();
+        void runQuery(input);
     }
 
     function handleRegenerate(assistantId: number) {
-        const index = messages.findIndex((m) => m.id === assistantId);
-        const lastUser = [...messages.slice(0, index)].reverse().find((m) => m.role === "user");
+        const index = messages.findIndex((message) => message.id === assistantId);
+        const lastUser = [...messages.slice(0, index)].reverse().find((message) => message.role === "user");
         if (!lastUser) return;
-        setMessages((prev) => prev.filter((m) => m.id !== assistantId));
-        runQuery(lastUser.content);
+        setMessages((previous) => previous.filter((message) => message.id !== assistantId));
+        void runQuery(lastUser.content);
     }
 
     function handleCopy(content: string) {
-        navigator.clipboard?.writeText(content).catch(() => {});
+        navigator.clipboard?.writeText(content).catch(() => { });
     }
 
     function toggleSources(id: number) {
-        setMessages((prev) =>
-            prev.map((m) => (m.id === id ? { ...m, sourcesOpen: !m.sourcesOpen } : m))
+        setMessages((previous) =>
+            previous.map((message) =>
+                message.id === id ? { ...message, sourcesOpen: !message.sourcesOpen } : message,
+            ),
         );
     }
 
     function setFeedback(id: number, value: Feedback) {
-        setMessages((prev) =>
-            prev.map((m) => (m.id === id ? { ...m, feedback: m.feedback === value ? null : value } : m))
+        setMessages((previous) =>
+            previous.map((message) =>
+                message.id === id
+                    ? { ...message, feedback: message.feedback === value ? null : value }
+                    : message,
+            ),
         );
     }
 
     function removeDocument(id: string) {
-        setDocuments((prev) => prev.filter((d) => d.id !== id));
+        setDocuments((previous) => previous.filter((document) => document.id !== id));
     }
 
-    async function handleFilesPicked(e: ChangeEvent<HTMLInputElement>) {
-        const files = Array.from(e.target.files ?? []);
-        const file = files[0];
-        e.target.value = "";
+    async function handleFilesPicked(event: ChangeEvent<HTMLInputElement>) {
+        const file = Array.from(event.target.files ?? [])[0];
+        event.target.value = "";
         if (!file) return;
 
         const validationError = validateDocumentFile(file);
@@ -195,7 +172,7 @@ export default function DocsChatPage() {
         setUploading(true);
         try {
             const response = await uploadDocument(file, token);
-            setDocuments((prev) => [toDocSource(response.document), ...prev]);
+            setDocuments((previous) => [toDocSource(response.document), ...previous]);
             toast.success("Document uploaded successfully.");
         } catch (error: unknown) {
             toast.error(getErrorMessage(error, "Failed to upload document."));
@@ -209,221 +186,45 @@ export default function DocsChatPage() {
     }
 
     return (
-        // Negative vertical margin cancels the dashboard <main>'s own
-        // padding (p-4 sm:p-6 lg:p-8) so this page can use the full
-        // available height for its own scroll region below.
         <div className={`-my-4 sm:-my-6 lg:-my-8 flex ${CHAT_HEIGHT_CLASS} flex-col bg-background text-text-primary`}>
-            {/* documents + new chat */}
-            <div className="flex flex-none items-center gap-3 border-b border-border bg-surface px-4 py-2.5 sm:px-6 lg:px-8">
-                <div className="flex flex-1 items-center gap-2 overflow-x-auto">
-                    {documents.map((doc) => (
-                        <div
-                            key={doc.id}
-                            className="flex flex-none items-center gap-1.5 rounded-full border border-border bg-background py-1 pl-2.5 pr-1.5 text-xs text-text-secondary"
-                        >
-                            <FileText size={12} className="text-docs-blue-600" />
-                            <span className="max-w-[9rem] truncate">{doc.name}</span>
-                            <button
-                                type="button"
-                                onClick={() => removeDocument(doc.id)}
-                                className="rounded-full p-0.5 text-text-muted hover:bg-surface hover:text-danger"
-                            >
-                                <X size={11} />
-                            </button>
-                        </div>
-                    ))}
+            <ChatDocumentToolbar
+                documents={documents}
+                authLoading={authLoading}
+                uploading={uploading}
+                fileInputRef={fileInputRef}
+                onRemoveDocument={removeDocument}
+                onFilesPicked={handleFilesPicked}
+                onNewChat={startNewChat}
+            />
 
-                    <button
-                        type="button"
-                        onClick={() => fileInputRef.current?.click()}
-                        disabled={authLoading || uploading}
-                        className="flex flex-none items-center gap-1 rounded-full border border-dashed border-border px-2.5 py-1 text-xs font-medium text-text-secondary hover:border-brand-400 hover:text-brand-600"
-                    >
-                        <Plus size={12} />
-                        {uploading ? "Uploading..." : "Add"}
-                    </button>
-                    <input
-                        ref={fileInputRef}
-                        type="file"
-                        multiple
-                        className="hidden"
-                        onChange={handleFilesPicked}
-                    />
-                </div>
+            <ChatMessages
+                messages={messages}
+                isSending={isSending}
+                scrollRef={scrollRef}
+                onRegenerate={handleRegenerate}
+                onCopy={handleCopy}
+                onToggleSources={toggleSources}
+                onFeedback={setFeedback}
+            />
 
-                <button
-                    type="button"
-                    onClick={startNewChat}
-                    className="flex flex-none items-center gap-1.5 rounded-docs-md border border-border px-3 py-1.5 text-xs font-medium text-text-secondary hover:bg-background"
-                >
-                    <Plus size={14} />
-                    New chat
-                </button>
-            </div>
-
-            {/* messages */}
-            <div className="relative min-h-0 flex-1">
-                <div ref={scrollRef} className="h-full overflow-y-auto px-4 py-6 sm:px-6 lg:px-8">
-                    {messages.length === 0 ? (
-                        <div className="mx-auto mt-16 max-w-sm text-center">
-                            <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-docs-lg bg-brand-50 text-brand-600">
-                                <MessageSquare size={22} />
-                            </div>
-                            <h2 className="mb-1 text-sm font-semibold">Ask your documents anything</h2>
-                            <p className="text-sm text-text-secondary">
-                                Answers are grounded only in the documents you&apos;ve added above.
-                            </p>
-                        </div>
-                    ) : (
-                        <div className="mx-auto flex max-w-3xl flex-col gap-8">
-                            {messages.map((message) =>
-                                message.role === "user" ? (
-                                    <div key={message.id} className="flex justify-end">
-                                        <div className="max-w-[85%] rounded-docs-lg bg-brand-600 px-4 py-2.5 text-sm text-white">
-                                            {message.content}
-                                        </div>
-                                    </div>
-                                ) : (
-                                    <div key={message.id} className="flex gap-3">
-                                        <div className="flex h-7 w-7 flex-none items-center justify-center rounded-full bg-brand-600 text-white">
-                                            <Sparkles size={13} />
-                                        </div>
-                                        <div className="min-w-0 flex-1">
-                                            <div className="text-sm leading-relaxed text-text-primary [&_a]:text-docs-blue-600 [&_a]:underline [&_blockquote]:my-3 [&_blockquote]:border-l-2 [&_blockquote]:border-border [&_blockquote]:pl-3 [&_code]:rounded [&_code]:bg-background [&_code]:px-1 [&_code]:py-0.5 [&_code]:font-mono [&_code]:text-[0.9em] [&_h1]:mb-3 [&_h1]:mt-5 [&_h1]:text-lg [&_h1]:font-semibold [&_h2]:mb-2 [&_h2]:mt-4 [&_h2]:text-base [&_h2]:font-semibold [&_h3]:mb-2 [&_h3]:mt-3 [&_h3]:font-semibold [&_li]:my-1 [&_ol]:my-3 [&_ol]:list-decimal [&_ol]:pl-5 [&_p]:my-2 [&_pre]:my-3 [&_pre]:overflow-x-auto [&_pre]:rounded-docs-sm [&_pre]:bg-background [&_pre]:p-3 [&_pre]:font-mono [&_pre]:text-xs [&_strong]:font-semibold [&_ul]:my-3 [&_ul]:list-disc [&_ul]:pl-5">
-                                                <ReactMarkdown remarkPlugins={[remarkGfm]}>
-                                                    {message.content}
-                                                </ReactMarkdown>
-                                            </div>
-
-                                            {message.sources && message.sources.length > 0 && (
-                                                <div className="mt-2">
-                                                    <button
-                                                        type="button"
-                                                        onClick={() => toggleSources(message.id)}
-                                                        className="text-xs font-medium text-docs-blue-600 hover:text-docs-blue-700"
-                                                    >
-                                                        {message.sourcesOpen
-                                                            ? "Hide sources"
-                                                            : `View sources (${message.sources.length})`}
-                                                    </button>
-                                                    {message.sourcesOpen && (
-                                                        <ul className="mt-2 space-y-1">
-                                                            {message.sources.map((source) => (
-                                                                <li
-                                                                    key={source}
-                                                                    className="rounded-docs-sm bg-docs-blue-50 px-2.5 py-1 text-xs text-docs-blue-700"
-                                                                >
-                                                                    {source}
-                                                                </li>
-                                                            ))}
-                                                        </ul>
-                                                    )}
-                                                </div>
-                                            )}
-
-                                            <div className="mt-1.5 flex items-center gap-0.5 text-text-muted">
-                                                <button
-                                                    type="button"
-                                                    onClick={() => handleCopy(message.content)}
-                                                    className="rounded-docs-sm p-1.5 hover:bg-surface hover:text-text-primary"
-                                                    title="Copy"
-                                                >
-                                                    <Copy size={13} />
-                                                </button>
-                                                <button
-                                                    type="button"
-                                                    onClick={() => handleRegenerate(message.id)}
-                                                    className="rounded-docs-sm p-1.5 hover:bg-surface hover:text-text-primary"
-                                                    title="Regenerate"
-                                                >
-                                                    <RefreshCw size={13} />
-                                                </button>
-                                                <button
-                                                    type="button"
-                                                    onClick={() => setFeedback(message.id, "up")}
-                                                    className={`rounded-docs-sm p-1.5 hover:bg-surface ${
-                                                        message.feedback === "up" ? "text-success" : "hover:text-text-primary"
-                                                    }`}
-                                                    title="Good response"
-                                                >
-                                                    <ThumbsUp size={13} />
-                                                </button>
-                                                <button
-                                                    type="button"
-                                                    onClick={() => setFeedback(message.id, "down")}
-                                                    className={`rounded-docs-sm p-1.5 hover:bg-surface ${
-                                                        message.feedback === "down" ? "text-danger" : "hover:text-text-primary"
-                                                    }`}
-                                                    title="Poor response"
-                                                >
-                                                    <ThumbsDown size={13} />
-                                                </button>
-                                            </div>
-                                        </div>
-                                    </div>
-                                )
-                            )}
-
-                            {isSending && (
-                                <div className="flex gap-3">
-                                    <div className="flex h-7 w-7 flex-none items-center justify-center rounded-full bg-brand-600 text-white">
-                                        <Sparkles size={13} />
-                                    </div>
-                                    <div className="flex items-center gap-1.5 py-1.5">
-                                        <span className="h-1.5 w-1.5 animate-bounce rounded-full bg-text-muted [animation-delay:-0.3s]" />
-                                        <span className="h-1.5 w-1.5 animate-bounce rounded-full bg-text-muted [animation-delay:-0.15s]" />
-                                        <span className="h-1.5 w-1.5 animate-bounce rounded-full bg-text-muted" />
-                                    </div>
-                                </div>
-                            )}
-                        </div>
-                    )}
-                </div>
-
-                {/* fade so text doesn't look like it's cut off behind the input */}
-                <div className="pointer-events-none absolute inset-x-0 bottom-0 h-6 bg-gradient-to-t from-background to-transparent" />
-            </div>
-
-            {/* input — stays put because the column above it has a bounded height */}
-            <form onSubmit={handleSubmit} className="flex-none border-t border-border bg-surface px-4 py-3 sm:px-6 lg:px-8">
-                <div className="mx-auto flex max-w-3xl items-end gap-2 rounded-docs-lg border border-border bg-background px-3 py-2 focus-within:border-brand-400">
-                    <button
-                        type="button"
-                        onClick={() => fileInputRef.current?.click()}
-                        disabled={uploading}
-                        className="flex-none rounded-docs-sm p-1.5 text-text-muted hover:bg-surface hover:text-text-primary"
-                        title="Attach"
-                    >
-                        <Paperclip size={17} />
-                    </button>
-                    <textarea
-                        ref={textareaRef}
-                        value={input}
-                        onChange={(e: ChangeEvent<HTMLTextAreaElement>) => setInput(e.target.value)}
-                        onKeyDown={(e: KeyboardEvent<HTMLTextAreaElement>) => {
-                            if (e.key === "Enter" && !e.shiftKey) {
-                                e.preventDefault();
-                                runQuery(input);
-                            }
-                        }}
-                        rows={1}
-                        placeholder={
-                            documents.length > 0
-                                ? "Ask a follow-up question..."
-                                : "Add a document above to start asking questions"
-                        }
-                        disabled={authLoading || documentsLoading || documents.length === 0 || isSending}
-                        className="max-h-40 flex-1 resize-none bg-transparent py-1.5 text-sm outline-none placeholder:text-text-muted disabled:cursor-not-allowed"
-                    />
-                    <button
-                        type="submit"
-                        disabled={!input.trim() || isSending || documents.length === 0}
-                        className="flex-none rounded-docs-md bg-brand-600 p-2 text-white transition-colors hover:bg-brand-700 disabled:cursor-not-allowed disabled:bg-border disabled:text-text-muted"
-                    >
-                        <Send size={16} />
-                    </button>
-                </div>
-            </form>
+            <ChatComposer
+                input={input}
+                authLoading={authLoading}
+                documentsLoading={documentsLoading}
+                hasDocuments={documents.length > 0}
+                isSending={isSending}
+                uploading={uploading}
+                textareaRef={textareaRef}
+                onInputChange={(event) => setInput(event.target.value)}
+                onKeyDown={(event: KeyboardEvent<HTMLTextAreaElement>) => {
+                    if (event.key === "Enter" && !event.shiftKey) {
+                        event.preventDefault();
+                        void runQuery(input);
+                    }
+                }}
+                onSubmit={handleSubmit}
+                onAttach={() => fileInputRef.current?.click()}
+            />
         </div>
     );
 }
