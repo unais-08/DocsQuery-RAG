@@ -5,6 +5,7 @@ const DOCUMENTS_API_PREFIX = "/api/v1/documents";
 export const ALLOWED_DOCUMENT_MIME_TYPES = [
   "application/pdf",
   "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+  "text/plain",
 ] as const;
 
 export const MAX_DOCUMENT_SIZE = 10 * 1024 * 1024;
