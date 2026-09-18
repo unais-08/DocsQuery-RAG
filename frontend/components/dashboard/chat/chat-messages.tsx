@@ -125,9 +125,9 @@ function MessageSources({
             </button>
             {isOpen && (
                 <ul className="mt-2 space-y-1">
-                    {sources.map((source) => (
-                        <li
-                            key={source}
+                    {sources.map((source,idx) => (
+                        <li 
+                            key={source + idx}
                             className="rounded-docs-sm bg-docs-blue-50 px-2.5 py-1 text-xs text-docs-blue-700"
                         >
                             {source}

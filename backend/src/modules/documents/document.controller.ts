@@ -125,7 +125,12 @@ export const rename = async (request: Request, response: Response, next: NextFun
 
 export const remove = async (request: Request, response: Response, next: NextFunction) => {
   try {
-    await deleteDocument(request.userId, documentIdSchema.parse(request.params.id));
+    const documentId = documentIdSchema.parse(request.params.id);
+
+    // Remove the document's embeddings before deleting its database record.
+    // This keeps Qdrant from retaining vectors that no longer have source text.
+    await deleteChunkVectorsForDocument(documentId, request.userId);
+    await deleteDocument(request.userId, documentId);
     response.status(204).send();
   } catch (error) {
     next(error);
