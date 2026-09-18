@@ -1,5 +1,6 @@
 import {
     BarChart3,
+    Clock,
     FileText,
     Home,
     MessageCircle,
@@ -21,6 +22,10 @@ export const mainNavigation = [
         name: "Q&A",
         href: "/dashboard/chat",
         icon: MessageCircle,
+    }, {
+        name: "Chat History",
+        href: "/dashboard/history",
+        icon: Clock,
     },
     {
         name: "Analytics",
