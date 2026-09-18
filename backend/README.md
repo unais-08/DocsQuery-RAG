@@ -36,8 +36,8 @@ The available variables are documented in `.env.example`. Common settings includ
 - `UPLOAD_DIR` sets the local upload directory (default `./uploads`).
 - `MAX_FILE_SIZE_MB` limits uploaded files (default `10`).
 - `JWT_SECRET` must be at least 32 characters and should be replaced in production.
-- `LLM_PROVIDER` selects the answer-generation provider: `gemini`, `openai`, or `ollama`.
-- `GEMINI_API_KEY`, `OPENAI_API_KEY`, `OPENAI_MODEL`, `OLLAMA_BASE_URL`, and `OLLAMA_MODEL` configure answer generation. Ollama is the free local option and requires Ollama to be installed with the selected model pulled.
+- `LLM_PROVIDER` selects the answer-generation provider: `gemini`, `groq`, `openai`, or `ollama`.
+- `GEMINI_API_KEY`, `GROQ_API_KEY`, `GROQ_MODEL`, `OPENAI_API_KEY`, `OPENAI_MODEL`, `OLLAMA_BASE_URL`, and `OLLAMA_MODEL` configure answer generation. Groq uses its OpenAI-compatible API; its default model is `llama-3.3-70b-versatile`. Ollama is the free local option and requires Ollama to be installed with the selected model pulled.
 - `QDRANT_URL` and `QDRANT_API_KEY` configure vector search. Gemini is still used for embeddings.
 
 

@@ -11,6 +11,7 @@ import { authRouter } from './modules/auth/auth.routes.js';
 import { documentRouter } from './modules/documents/document.routes.js';
 import { queryRouter } from './modules/query/query.routes.js';
 import { healthRouter } from './modules/health/health.routes.js'; 
+import { conversationRouter } from './modules/conversations/conversation.routes.js';
 
 const app = express();
 
@@ -40,6 +41,7 @@ app.use(`${env.API_PREFIX}/health`, healthRouter);
 app.use(`${env.API_PREFIX}/auth`, authRouter);
 app.use(`${env.API_PREFIX}/documents`, documentRouter);
 app.use(`${env.API_PREFIX}/query`, queryRouter);
+app.use(`${env.API_PREFIX}/conversations`, conversationRouter);
 
 app.use(notFoundHandler);
 app.use(errorHandler);

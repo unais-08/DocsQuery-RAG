@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState, type ChangeEvent, type FormEvent, type KeyboardEvent } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import { toast } from "sonner";
 
 import { ChatComposer } from "@/components/dashboard/chat/chat-composer";
@@ -15,6 +16,11 @@ import {
     type Document,
 } from "@/lib/api/documents";
 import { queryDocuments } from "@/lib/api/query";
+import {
+    createConversation,
+    getConversation,
+    type PersistedChatMessage,
+} from "@/lib/api/conversations";
 
 function toDocSource(document: Document): DocSource {
     return {
@@ -28,16 +34,12 @@ function getErrorMessage(error: unknown, fallback: string) {
     return error instanceof Error && error.message ? error.message : fallback;
 }
 
-let messageIdCounter = 100;
-function nextId(): number {
-    messageIdCounter += 1;
-    return messageIdCounter;
-}
-
 const CHAT_HEIGHT_CLASS = "h-[calc(100dvh-4rem)]";
 
 export default function DocsChatPage() {
     const { token, loading: authLoading } = useAuth();
+    const router = useRouter();
+    const searchParams = useSearchParams();
 
     // State
     const [messages, setMessages] = useState<ChatMessage[]>([]);
@@ -46,10 +48,47 @@ export default function DocsChatPage() {
     const [documents, setDocuments] = useState<DocSource[]>([]);
     const [documentsLoading, setDocumentsLoading] = useState(true);
     const [uploading, setUploading] = useState(false);
+    const [conversationId, setConversationId] = useState<string | null>(null);
+    const requestedConversationId = searchParams.get("conversationId");
+    const conversationLoading = Boolean(requestedConversationId && conversationId !== requestedConversationId);
 
     const scrollRef = useRef<HTMLDivElement>(null);
     const textareaRef = useRef<HTMLTextAreaElement>(null);
     const fileInputRef = useRef<HTMLInputElement>(null);
+
+    function toChatMessage(message: PersistedChatMessage): ChatMessage {
+        return {
+            id: message.id,
+            role: message.role,
+            content: message.content,
+            createdAt: message.createdAt,
+            sources: message.sources ?? undefined,
+            sourcesOpen: false,
+            feedback: null,
+        };
+    }
+
+    useEffect(() => {
+        if (!token || authLoading) return;
+        if (!requestedConversationId || requestedConversationId === conversationId) return;
+
+        let cancelled = false;
+        void getConversation(requestedConversationId, token)
+            .then((response) => {
+                if (!cancelled) {
+                    setConversationId(requestedConversationId);
+                    setMessages(response.messages.map(toChatMessage));
+                }
+            })
+            .catch((error: unknown) => {
+                if (!cancelled) {
+                    toast.error(getErrorMessage(error, "Failed to load conversation."));
+                    router.replace("/dashboard/chat");
+                }
+            });
+
+        return () => { cancelled = true; };
+    }, [authLoading, conversationId, requestedConversationId, router, token]);
 
     // Data fetching and textarea behavior
     useEffect(() => {
@@ -88,27 +127,38 @@ export default function DocsChatPage() {
         if (!query.trim() || documents.length === 0 || !token || isSending) return;
 
         const question = query.trim();
-        const userMessage: ChatMessage = { id: nextId(), role: "user", content: question };
-        setMessages((previous) => [...previous, userMessage]);
+        const optimisticMessageId = `pending-${Date.now()}`;
         setInput("");
+        setMessages((previous) => [
+            ...previous,
+            { id: optimisticMessageId, role: "user", content: question, createdAt: new Date().toISOString() },
+        ]);
         setIsSending(true);
 
         try {
-            const result = await queryDocuments({ question }, token);
-            setMessages((previous) => [
-                ...previous,
-                {
-                    id: nextId(),
-                    role: "assistant",
-                    content: result.answer,
-                    sources: result.sources.map((source) =>
-                        `${source.documentName}${source.pageNumber ? `, p. ${source.pageNumber}` : ""}`,
-                    ),
-                    sourcesOpen: false,
-                    feedback: null,
-                },
-            ]);
+            let activeConversationId = conversationId;
+            if (!activeConversationId) {
+                const response = await createConversation(token);
+                activeConversationId = response.conversation.id;
+                setConversationId(activeConversationId);
+                router.replace(`/dashboard/chat?conversationId=${activeConversationId}`);
+            }
+
+            const result = await queryDocuments({ conversationId: activeConversationId, question }, token);
+            setMessages((previous) => previous.map((message) => message.id === optimisticMessageId
+                ? { id: result.messages.user.id, role: "user" as const, content: question, createdAt: result.messages.user.createdAt }
+                : message
+            ).concat({
+                id: result.messages.assistant.id,
+                role: "assistant",
+                content: result.answer,
+                createdAt: result.messages.assistant.createdAt,
+                sources: result.sources,
+                sourcesOpen: false,
+                feedback: null,
+            }));
         } catch (error: unknown) {
+            setMessages((previous) => previous.filter((message) => message.id !== optimisticMessageId));
             toast.error(getErrorMessage(error, "Failed to get an answer."));
         } finally {
             setIsSending(false);
@@ -120,7 +170,7 @@ export default function DocsChatPage() {
         void runQuery(input);
     }
 
-    function handleRegenerate(assistantId: number) {
+    function handleRegenerate(assistantId: string) {
         const index = messages.findIndex((message) => message.id === assistantId);
         const lastUser = [...messages.slice(0, index)].reverse().find((message) => message.role === "user");
         if (!lastUser) return;
@@ -132,7 +182,7 @@ export default function DocsChatPage() {
         navigator.clipboard?.writeText(content).catch(() => { });
     }
 
-    function toggleSources(id: number) {
+    function toggleSources(id: string) {
         setMessages((previous) =>
             previous.map((message) =>
                 message.id === id ? { ...message, sourcesOpen: !message.sourcesOpen } : message,
@@ -140,7 +190,7 @@ export default function DocsChatPage() {
         );
     }
 
-    function setFeedback(id: number, value: Feedback) {
+    function setFeedback(id: string, value: Feedback) {
         setMessages((previous) =>
             previous.map((message) =>
                 message.id === id
@@ -181,15 +231,18 @@ export default function DocsChatPage() {
         }
     }
 
-    function startNewChat() {
+    async function startNewChat() {
         setMessages([]);
+        setConversationId(null);
+        setInput("");
+        router.push("/dashboard/chat");
     }
 
     return (
         <div className={`-my-4 sm:-my-6 lg:-my-8 flex ${CHAT_HEIGHT_CLASS} flex-col bg-background text-text-primary`}>
             <ChatDocumentToolbar
                 documents={documents}
-                authLoading={authLoading}
+                authLoading={authLoading || conversationLoading}
                 uploading={uploading}
                 fileInputRef={fileInputRef}
                 onRemoveDocument={removeDocument}
@@ -210,7 +263,7 @@ export default function DocsChatPage() {
             <ChatComposer
                 input={input}
                 authLoading={authLoading}
-                documentsLoading={documentsLoading}
+                documentsLoading={documentsLoading || conversationLoading}
                 hasDocuments={documents.length > 0}
                 isSending={isSending}
                 uploading={uploading}

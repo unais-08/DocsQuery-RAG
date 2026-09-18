@@ -3,6 +3,7 @@ import { apiRequest } from "@/lib/api/client";
 const QUERY_API_PREFIX = "/api/v1/query";
 
 export type QueryInput = {
+    conversationId: string;
     question: string;
 };
 
@@ -18,6 +19,10 @@ export type QueryResponse = {
     question: string;
     answer: string;
     sources: QuerySource[];
+    messages: {
+        user: { id: string; createdAt: string };
+        assistant: { id: string; createdAt: string };
+    };
 };
 
 export function queryDocuments(input: QueryInput, token: string) {

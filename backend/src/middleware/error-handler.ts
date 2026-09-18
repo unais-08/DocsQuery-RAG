@@ -4,6 +4,7 @@ import { logger } from '../config/logger.js';
 import { AuthError } from '../modules/auth/auth.service.js';
 import { DocumentError } from '../modules/documents/document.errors.js';
 import { AiServiceError } from '../infrastructure/llm/llm.errors.js';
+import { ConversationError } from '../modules/conversations/conversation.errors.js';
 
 export const notFoundHandler: RequestHandler = (request, response) => {
   response.status(404).json({
@@ -42,6 +43,16 @@ export const errorHandler: ErrorRequestHandler = (error, _request, response, _ne
       logger.error({ code: error.code }, `Document operation failed: ${error.message}`);
     } else if (error.code !== 'DOCUMENT_NOT_FOUND') {
       logger.warn({ code: error.code }, `Document upload failed: ${error.message}`);
+    }
+    response.status(error.statusCode).json({
+      error: { code: error.code, message: error.message }
+    });
+    return;
+  }
+
+  if (error instanceof ConversationError) {
+    if (error.statusCode >= 500) {
+      logger.error({ code: error.code }, `Conversation operation failed: ${error.message}`);
     }
     response.status(error.statusCode).json({
       error: { code: error.code, message: error.message }

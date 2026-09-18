@@ -7,6 +7,7 @@ import {
     type SimilarChunkResult,
 } from "../../infrastructure/vector-store/qdrant.service.js";
 import { buildContext } from "./context-builder.js";
+import { assertConversationOwnership } from "../conversations/conversation.service.js";
 
 export interface RetrievedChunk {
     chunkId: string;
@@ -79,9 +80,19 @@ export const getChunksForQueryResults = async (
 };
 
 export const queryDocuments = async (
+    conversationId: string,
     question: string,
     userId: string
 ) => {
+    await assertConversationOwnership(userId, conversationId);
+    const userMessage = await prisma.chatMessage.create({
+        data: { conversationId, role: "user", content: question }
+    });
+
+    const conversation = await prisma.conversation.findFirst({
+        where: { id: conversationId, userId },
+        select: { title: true, messages: { select: { id: true } } }
+    });
     const questionEmbedding = await generateEmbedding(question);
 
     logger.debug(`now goes to searchSimilarChunks with embedding of length ${questionEmbedding.length} for userId: ${userId}`);
@@ -90,18 +101,34 @@ export const queryDocuments = async (
     const retrievedChunks = await getChunksForQueryResults(results, userId);
     const context = buildContext(retrievedChunks);
     const answer = await generateAnswer(question, context);
+    const sources = retrievedChunks.map(({ chunkId, documentId, documentName, pageNumber, score }) => ({
+        chunkId,
+        documentId,
+        documentName,
+        pageNumber,
+        score,
+    }));
+
+    const assistantMessage = await prisma.chatMessage.create({
+        data: { conversationId, role: "assistant", content: answer, sources }
+    });
+    await prisma.conversation.updateMany({
+        where: { id: conversationId, userId },
+        data: { updatedAt: new Date() }
+    });
+
+    if (conversation?.title === "New Chat" && conversation.messages.length === 1) {
+        await prisma.conversation.updateMany({
+            where: { id: conversationId, userId },
+            data: { title: question.slice(0, 120) }
+        });
+    }
 
     return {
         question,
         answer,
-        // context,
-        sources: retrievedChunks.map(({ chunkId, documentId, documentName, pageNumber, score }) => ({
-            chunkId,
-            documentId,
-            documentName,
-            pageNumber,
-            score,
-        })),
+        sources,
+        messages: { user: userMessage, assistant: assistantMessage },
         // results: retrievedChunks,
     };
 };
