@@ -1,16 +1,11 @@
-import { geminiClient } from './gemini.client.js';
-import { GEMINI_GENERATION_MODEL } from './llm.constants.js';
 import { buildPrompt } from './prompt.js';
 import { AiServiceError } from './llm.errors.js';
 import { logger } from '../../config/logger.js';
+import { answerModel } from './answer-model.factory.js';
 
 export async function generateAnswer(question: string, context: string): Promise<string> {
 	try {
-		const response = await geminiClient.models.generateContent({
-			model: GEMINI_GENERATION_MODEL,
-			contents: buildPrompt(question, context)
-		});
-		const answer = response.text?.trim();
+		const answer = await answerModel.generate(buildPrompt(question, context));
 		if (!answer) throw new AiServiceError();
 		return answer;
 	} catch (error) {

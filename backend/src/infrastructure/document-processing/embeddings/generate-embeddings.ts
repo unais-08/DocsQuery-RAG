@@ -1,6 +1,6 @@
 import { logger } from '../../../config/logger.js';
 import type { TextChunk } from '../chunking/text-chunker.js';
-import { geminiClient } from '../../llm/gemini.client.js';
+import { geminiClient } from '../../llm/models/gemini/gemini.client.js';
 import { AiServiceError } from '../../llm/llm.errors.js';
 
 export type EmbeddingGenerator = (text: string) => Promise<number[]>;

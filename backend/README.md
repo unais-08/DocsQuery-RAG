@@ -36,7 +36,9 @@ The available variables are documented in `.env.example`. Common settings includ
 - `UPLOAD_DIR` sets the local upload directory (default `./uploads`).
 - `MAX_FILE_SIZE_MB` limits uploaded files (default `10`).
 - `JWT_SECRET` must be at least 32 characters and should be replaced in production.
-- `GEMINI_API_KEY`, `QDRANT_URL`, and `QDRANT_API_KEY` configure the embedding and vector-search services.
+- `LLM_PROVIDER` selects the answer-generation provider: `gemini`, `openai`, or `ollama`.
+- `GEMINI_API_KEY`, `OPENAI_API_KEY`, `OPENAI_MODEL`, `OLLAMA_BASE_URL`, and `OLLAMA_MODEL` configure answer generation. Ollama is the free local option and requires Ollama to be installed with the selected model pulled.
+- `QDRANT_URL` and `QDRANT_API_KEY` configure vector search. Gemini is still used for embeddings.
 
 
 ## PostgreSQL and Prisma
@@ -160,7 +162,8 @@ src/
   middleware/   Express middleware, auth checks, and error handling
   modules/      Feature modules with routes, controllers, validation, and services
   infrastructure/
-                Document processing, embeddings, Gemini, and Qdrant integrations
+                Document processing, embeddings, provider-neutral answer generation,
+                Gemini, OpenAI, and Ollama adapters, and Qdrant integrations
   types/        Shared TypeScript types
 prisma/
   schema.prisma
