@@ -142,6 +142,7 @@ export default function DocumentsPage() {
 
   const handleDrop = (event: DragEvent<HTMLDivElement>) => {
     event.preventDefault();
+    if (uploading) return;
     setIsDragging(false);
     void handleFiles(event.dataTransfer.files);
   };
@@ -247,17 +248,25 @@ export default function DocumentsPage() {
       </div>
 
       <div
-        onClick={() => fileInputRef.current?.click()}
+        onClick={() => {
+          if (!uploading) fileInputRef.current?.click();
+        }}
         onDragOver={(event) => {
           event.preventDefault();
+          if (uploading) return;
           setIsDragging(true);
         }}
-        onDragLeave={() => setIsDragging(false)}
+        onDragLeave={() => {
+          if (!uploading) setIsDragging(false);
+        }}
         onDrop={handleDrop}
-        className={`flex cursor-pointer flex-col items-center gap-3 rounded-docs-lg border-2 border-dashed px-6 py-8 text-center transition ${isDragging
+        aria-disabled={uploading}
+        className={`flex flex-col items-center gap-3 rounded-docs-lg border-2 border-dashed px-6 py-8 text-center transition ${uploading
+          ? "cursor-not-allowed border-border bg-background opacity-60"
+          : `cursor-pointer ${isDragging
           ? "border-brand-500 bg-brand-50"
           : "border-border bg-surface hover:border-brand-300 hover:bg-brand-50/40"
-          }`}
+          }`}`}
       >
         <div className="flex h-11 w-11 items-center justify-center rounded-full bg-brand-100 text-brand-600">
           {uploading ? <Loader2 size={20} className="animate-spin" /> : <Upload size={20} />}

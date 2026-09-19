@@ -3,23 +3,19 @@
 import {
     FileText,
     HardDrive,
-    Loader2,
     MessageCircle,
     MoreVertical,
     Send,
     Upload,
 } from "lucide-react";
 import { useRouter } from "next/navigation";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 import { toast } from "sonner";
 
 import { StatCard } from "@/components/dashboard/stats-card";
 import { useAuth } from "@/context/auth-context";
 import { getDashboardStats } from "@/lib/api/dashboard";
-import {
-    uploadDocument,
-    validateDocumentFile,
-} from "@/lib/api/documents";
+
 
 const recentDocuments = [
     {
@@ -30,8 +26,8 @@ const recentDocuments = [
         uploaded: "2 hours ago",
     },
     {
-        name: "Resume.pdf",
-        type: "PDF",
+        name: "Resume.docx",
+        type: "DOCX",
         size: "1.1 MB",
         status: "Ready",
         uploaded: "Yesterday",
@@ -58,10 +54,8 @@ function formatStorage(bytes: number) {
 }
 
 export default function DashboardPage() {
-    const fileInputRef = useRef<HTMLInputElement>(null);
     const router = useRouter();
     const { token, user } = useAuth();
-    const [uploading, setUploading] = useState(false);
     const [question, setQuestion] = useState("");
     const [dashboardStats, setDashboardStats] = useState({
         documents: 0,
@@ -87,46 +81,11 @@ export default function DashboardPage() {
         };
     }, [token]);
 
-    const refreshDashboardStats = () => {
-        if (!token) return;
-        void getDashboardStats(token).then(setDashboardStats).catch(() => undefined);
-    };
-
-    const handleUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
-        const file = event.target.files?.[0];
-        event.target.value = "";
-        if (!file) return;
-
-        const validationError = validateDocumentFile(file);
-        if (validationError) {
-            toast.error(validationError);
-            return;
-        }
-        if (!token) {
-            toast.error("Your session has expired. Please sign in again.");
-            return;
-        }
-
-        setUploading(true);
-        const uploadToast = toast.loading("Uploading document...");
-        try {
-            await uploadDocument(file, token);
-            refreshDashboardStats();
-            toast.success("Document uploaded successfully", { id: uploadToast });
-        } catch {
-            toast.error("Failed to upload document", { id: uploadToast });
-        } finally {
-            setUploading(false);
-        }
-    };
-
-    // Doesn't answer anything here — just hands the question off to the
-    // Chat / Ask page (adjust the route below if yours differs).
+    const goToUpload = () => {
+        router.push("/dashboard/documents");
+    }
     const goToChat = () => {
-
-        router.push(
-            "/dashboard/chat"
-        );
+        router.push("/dashboard/chat");
     };
 
     return (
@@ -145,21 +104,13 @@ export default function DashboardPage() {
                 <div className="flex flex-col items-end gap-2">
                     <button
                         type="button"
-                        onClick={() => fileInputRef.current?.click()}
-                        disabled={uploading}
+                        onClick={goToUpload}
+
                         className="inline-flex h-10 items-center justify-center gap-2 rounded-xl bg-brand-600 px-4 text-sm font-semibold text-white shadow-lg shadow-brand-600/20 transition hover:bg-brand-700 disabled:cursor-not-allowed disabled:opacity-60"
                     >
-                        {uploading ? <Loader2 size={17} className="animate-spin" /> : <Upload size={17} />}
-                        {uploading ? "Uploading..." : "Upload document"}
+                        <Upload size={17} />
+                        Go To Upload Document
                     </button>
-
-                    <input
-                        ref={fileInputRef}
-                        type="file"
-                        accept=".pdf,.docx"
-                        className="hidden"
-                        onChange={(event) => void handleUpload(event)}
-                    />
                 </div>
             </div>
 
