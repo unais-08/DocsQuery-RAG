@@ -1,9 +1,10 @@
 import { readFile } from 'node:fs/promises';
-import { bucketName, supabase } from './supabase.client.js';
-import { getStoragePath } from './supabase.helper.js';
+
+import { logger } from '../../config/logger.js';
 import { DocumentError } from '../../modules/documents/document.errors.js';
 
-
+import { bucketName, supabase } from './supabase.client.js';
+import { getStoragePath } from './supabase.helper.js';
 
 
 export const uploadDocument = async (
@@ -30,10 +31,10 @@ export const uploadDocument = async (
 
     if (error) {
       // Log the concrete Supabase internal issue for backend monitoring
-      console.error('Supabase upload internal exception:', error);
+      logger.error(`Supabase upload internal exception: ${error}`);
       throw error;
     }
-
+    logger.debug('Document uploaded successfully to Supabase storage');
     return storagePath;
   } catch (error) {
     throw new DocumentError('Document storage upload failed', 502, 'STORAGE_UPLOAD_FAILED');

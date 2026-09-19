@@ -10,8 +10,9 @@ export async function generateEmbedding(text: string): Promise<number[]> {
     // Convert text into a 1536-dimensional vector for semantic search in Qdrant.
     const response = await geminiClient.models.embedContent({ model: 'gemini-embedding-2', contents: text, config: { outputDimensionality: 1536 } });
     const embedding = response.embeddings?.[0]?.values;
+
     if (!embedding) throw new AiServiceError();
-    logger.info(`Embedding generated successfully for text of length ${text.length}`);
+
     return embedding;
   } catch (error) {
     if (error instanceof AiServiceError) throw error;
@@ -22,13 +23,21 @@ export async function generateEmbedding(text: string): Promise<number[]> {
 
 export async function createChunkEmbeddings<T extends TextChunk>(chunks: T[], embeddingGenerator: EmbeddingGenerator = generateEmbedding): Promise<Array<T & { embedding: number[] }>> {
 
+  logger.debug('Embedding Generation for chunks Started');
 
   const embeddedChunks: Array<T & { embedding: number[] }> = [];
   for (const chunk of chunks) {
-    // Generate an embedding from the chunk text while preserving its metadata.
-    const embeddedChunk = { ...chunk, embedding: await embeddingGenerator(chunk.text) };
-    embeddedChunks.push(embeddedChunk);
-    logger.debug({ chunkIndex: embeddedChunk.index, textLength: embeddedChunk.text.length }, 'Generated embedding for chunk');
+    try {
+      // Generate an embedding from the chunk text while preserving its metadata.
+      const embeddedChunk = { ...chunk, embedding: await embeddingGenerator(chunk.text) };
+      embeddedChunks.push(embeddedChunk);
+    } catch (error) {
+      logger.error({ err: error, chunkIndex: chunk.index }, 'Failed to generate embedding for chunk');
+      if (error instanceof AiServiceError) throw error;
+      throw new AiServiceError();
+    }
   }
+  logger.debug('Embedding Generation for chunks Completed');
+
   return embeddedChunks;
 }
