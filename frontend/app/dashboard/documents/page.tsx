@@ -299,11 +299,8 @@ export default function DocumentsPage() {
           </div>
           <div>
             <h3 className="font-medium text-text-primary">No documents yet</h3>
-            <p className="mt-1 text-sm text-text-secondary">Upload a file to start asking questions about it.</p>
           </div>
-          <button type="button" onClick={() => fileInputRef.current?.click()} className="mt-1 rounded-docs-md bg-brand-600 px-4 py-2 text-sm font-semibold text-white hover:bg-brand-700">
-            Upload document
-          </button>
+        
         </div>
       ) : filteredDocuments.length === 0 ? (
         <div className="rounded-docs-lg border border-border bg-surface px-6 py-10 text-center text-sm text-text-secondary shadow-docs-card">

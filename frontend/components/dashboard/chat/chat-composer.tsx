@@ -3,7 +3,7 @@
 import { Paperclip, Send } from "lucide-react";
 import type { ChangeEvent, FormEvent, KeyboardEvent, RefObject } from "react";
 
- type ChatComposerProps = {
+type ChatComposerProps = {
     input: string;
     authLoading: boolean;
     documentsLoading: boolean;
@@ -33,7 +33,7 @@ export function ChatComposer({
     return (
         <form onSubmit={onSubmit} className="flex-none border-t border-border bg-surface px-4 py-3 sm:px-6 lg:px-8">
             <div className="mx-auto flex max-w-3xl items-end gap-2 rounded-docs-lg border border-border bg-background px-3 py-2 focus-within:border-brand-400">
-                <button
+                {/* <button
                     type="button"
                     onClick={onAttach}
                     disabled={uploading}
@@ -41,7 +41,7 @@ export function ChatComposer({
                     title="Attach"
                 >
                     <Paperclip size={17} />
-                </button>
+                </button> */}
                 <textarea
                     ref={textareaRef}
                     value={input}

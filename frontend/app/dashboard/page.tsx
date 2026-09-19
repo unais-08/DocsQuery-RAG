@@ -10,11 +10,12 @@ import {
     Upload,
 } from "lucide-react";
 import { useRouter } from "next/navigation";
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 
 import { StatCard } from "@/components/dashboard/stats-card";
 import { useAuth } from "@/context/auth-context";
+import { getDashboardStats } from "@/lib/api/dashboard";
 import {
     uploadDocument,
     validateDocumentFile,
@@ -50,13 +51,46 @@ const suggestedQuestions = [
     "Give me a detailed explanation",
 ];
 
+function formatStorage(bytes: number) {
+    if (bytes === 0) return "0 MB";
+    if (bytes < 1024 * 1024) return `${Math.max(1, Math.round(bytes / 1024))} KB`;
+    return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+}
+
 export default function DashboardPage() {
     const fileInputRef = useRef<HTMLInputElement>(null);
     const router = useRouter();
     const { token, user } = useAuth();
     const [uploading, setUploading] = useState(false);
     const [question, setQuestion] = useState("");
+    const [dashboardStats, setDashboardStats] = useState({
+        documents: 0,
+        questions: 0,
+        storageBytes: 0,
+    });
     const displayName = user?.name?.split(" ")[0] ?? "there";
+
+    useEffect(() => {
+        if (!token) return;
+
+        let cancelled = false;
+        void getDashboardStats(token)
+            .then((stats) => {
+                if (!cancelled) setDashboardStats(stats);
+            })
+            .catch(() => {
+                if (!cancelled) toast.error("Failed to load dashboard stats");
+            });
+
+        return () => {
+            cancelled = true;
+        };
+    }, [token]);
+
+    const refreshDashboardStats = () => {
+        if (!token) return;
+        void getDashboardStats(token).then(setDashboardStats).catch(() => undefined);
+    };
 
     const handleUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
         const file = event.target.files?.[0];
@@ -77,6 +111,7 @@ export default function DashboardPage() {
         const uploadToast = toast.loading("Uploading document...");
         try {
             await uploadDocument(file, token);
+            refreshDashboardStats();
             toast.success("Document uploaded successfully", { id: uploadToast });
         } catch {
             toast.error("Failed to upload document", { id: uploadToast });
@@ -131,21 +166,21 @@ export default function DashboardPage() {
             <div className="mt-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
                 <StatCard
                     title="Documents"
-                    value="12"
+                    value={String(dashboardStats.documents)}
                     description="Uploaded documents"
                     icon={<FileText size={20} />}
                 />
 
                 <StatCard
                     title="Questions asked"
-                    value="87"
+                    value={String(dashboardStats.questions)}
                     description="Total questions"
                     icon={<MessageCircle size={20} />}
                 />
 
                 <StatCard
                     title="Storage used"
-                    value="24 MB"
+                    value={formatStorage(dashboardStats.storageBytes)}
                     description="Of 100 MB available"
                     icon={<HardDrive size={20} />}
                 />

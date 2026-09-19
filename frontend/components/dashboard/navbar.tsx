@@ -38,7 +38,7 @@ export function Navbar() {
                         DocsQuery
                     </div>
 
-                    {/* Desktop search */}
+                    {/* Desktop search
                     <div className="relative hidden w-full max-w-md sm:block lg:ml-0">
                         <Search
                             size={17}
@@ -50,7 +50,7 @@ export function Navbar() {
                             placeholder="Search documents..."
                             className="h-10 w-full rounded-xl border border-gray-200 bg-gray-50 pl-10 pr-4 text-sm text-gray-900 outline-none transition placeholder:text-gray-400 focus:border-brand-500 focus:bg-white focus:ring-4 focus:ring-brand-500/10"
                         />
-                    </div>
+                    </div> */}
 
                 </div>
 

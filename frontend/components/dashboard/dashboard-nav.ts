@@ -27,11 +27,6 @@ export const mainNavigation = [
         href: "/dashboard/history",
         icon: Clock,
     },
-    {
-        name: "Analytics",
-        href: "/dashboard/analytics",
-        icon: BarChart3,
-    },
 ];
 
 export const accountNavigation = [

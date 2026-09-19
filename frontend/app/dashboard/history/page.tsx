@@ -98,12 +98,6 @@ export default function ChatHistoryPage() {
         }
     }
 
-    function handleShare(chat: ChatHistoryItem) {
-        setOpenMenuId(null);
-        void navigator.clipboard?.writeText(`${window.location.origin}/dashboard/chat?conversationId=${chat.id}`);
-        toast.success("Conversation link copied.");
-    }
-
     function startNewChat() {
         router.push("/dashboard/chat");
     }
@@ -169,7 +163,7 @@ export default function ChatHistoryPage() {
                                 } ${openMenuId === chat.id ? "z-30" : "z-0"
                                 } ${deletingId === chat.id ? "pointer-events-none opacity-50" : ""}`}
                         >
-                            <div className="flex h-9 w-9 flex-none items-center justify-center rounded-docs-sm bg-docs-blue-50 text-docs-blue-600">
+                            <div className="flex h-9 w-9 flex-none items-center justify-center rounded-docs-sm bg-docs-blue-50 text-red-500">
                                 <FileText size={16} />
                             </div>
 
@@ -210,14 +204,6 @@ export default function ChatHistoryPage() {
                                             </button>
                                             <button
                                                 type="button"
-                                                onClick={() => handleShare(chat)}
-                                                className="flex w-full items-center gap-2 px-3 py-2 text-left text-sm text-text-secondary hover:bg-background"
-                                            >
-                                                <Share2 size={14} />
-                                                Share
-                                            </button>
-                                            <button
-                                                type="button"
                                                 onClick={() => handleDelete(chat)}
                                                 className="flex w-full items-center gap-2 px-3 py-2 text-left text-sm text-danger hover:bg-background"
                                             >
@@ -232,8 +218,6 @@ export default function ChatHistoryPage() {
                     ))
                 )}
             </div>
-
-
         </div>
     );
 }
