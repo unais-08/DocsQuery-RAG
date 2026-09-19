@@ -8,6 +8,7 @@ import {
 } from "../../infrastructure/vector-store/qdrant.service.js";
 import { buildContext } from "./context-builder.js";
 import { assertConversationOwnership } from "../conversations/conversation.service.js";
+import { DocumentError } from "../documents/document.errors.js";
 
 export interface RetrievedChunk {
     chunkId: string;
@@ -82,9 +83,22 @@ export const getChunksForQueryResults = async (
 export const queryDocuments = async (
     conversationId: string,
     question: string,
+    documentIds: string[],
     userId: string
 ) => {
     await assertConversationOwnership(userId, conversationId);
+    const ownedDocumentCount = await prisma.document.count({
+        where: { id: { in: documentIds }, userId },
+    });
+    if (ownedDocumentCount !== documentIds.length) {
+        throw new DocumentError("One or more selected documents were not found", 400, "INVALID_DOCUMENT_SELECTION");
+    }
+
+    await prisma.conversation.updateMany({
+        where: { id: conversationId, userId },
+        data: { selectedDocumentIds: documentIds },
+    });
+
     const userMessage = await prisma.chatMessage.create({
         data: { conversationId, role: "user", content: question }
     });
@@ -97,7 +111,7 @@ export const queryDocuments = async (
 
     logger.debug(`now goes to searchSimilarChunks with embedding of length ${questionEmbedding.length} for userId: ${userId}`);
     // Qdrant filtering and the Postgres ownership check both enforce user isolation.
-    const results = await searchSimilarChunks(questionEmbedding, userId);
+    const results = await searchSimilarChunks(questionEmbedding, userId, documentIds);
     const retrievedChunks = await getChunksForQueryResults(results, userId);
     const context = buildContext(retrievedChunks);
     const answer = await generateAnswer(question, context);

@@ -5,6 +5,7 @@ const QUERY_API_PREFIX = "/api/v1/query";
 export type QueryInput = {
     conversationId: string;
     question: string;
+    documentIds: string[];
 };
 
 export type QuerySource = {

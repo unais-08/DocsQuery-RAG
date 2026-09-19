@@ -1,48 +1,65 @@
 "use client";
 
-import { FileText, Plus, X } from "lucide-react";
+import { Check, FileText, Plus } from "lucide-react";
 import type { ChangeEvent, RefObject } from "react";
 
 import type { DocSource } from "./chat-types";
 
 type ChatDocumentToolbarProps = {
     documents: DocSource[];
+    selectedDocumentIds: string[];
     authLoading: boolean;
     uploading: boolean;
     fileInputRef: RefObject<HTMLInputElement | null>;
-    onRemoveDocument: (id: string) => void;
+    onToggleDocument: (id: string) => void;
+    onSelectAll: () => void;
+    onClearSelection: () => void;
     onFilesPicked: (event: ChangeEvent<HTMLInputElement>) => void;
     onNewChat: () => void;
 };
 
 export function ChatDocumentToolbar({
     documents,
+    selectedDocumentIds,
     authLoading,
     uploading,
     fileInputRef,
-    onRemoveDocument,
+    onToggleDocument,
+    onSelectAll,
+    onClearSelection,
     onFilesPicked,
     onNewChat,
 }: ChatDocumentToolbarProps) {
     return (
         <div className="flex flex-none items-center gap-3 border-b border-border bg-surface px-4 py-2.5 sm:px-6 lg:px-8">
-            <div className="flex flex-1 items-center gap-2 overflow-x-auto">
+            <div className="flex min-w-0 flex-1 items-center gap-2 overflow-x-auto">
+                <span className="flex-none text-xs font-medium text-text-secondary">Documents</span>
                 {documents.map((document) => (
-                    <div
+                    <button
                         key={document.id}
+                        type="button"
+                        onClick={() => onToggleDocument(document.id)}
                         className="flex flex-none items-center gap-1.5 rounded-full border border-border bg-background py-1 pl-2.5 pr-1.5 text-xs text-text-secondary"
                     >
                         <FileText size={12} className="text-docs-blue-600" />
                         <span className="max-w-[9rem] truncate">{document.name}</span>
-                        <button
-                            type="button"
-                            onClick={() => onRemoveDocument(document.id)}
-                            className="rounded-full p-0.5 text-text-muted hover:bg-surface hover:text-danger"
-                        >
-                            <X size={11} />
-                        </button>
-                    </div>
+                        {selectedDocumentIds.includes(document.id) && <Check size={12} className="text-brand-600" />}
+                    </button>
                 ))}
+
+                {documents.length > 0 && (
+                    <>
+                        <button type="button" onClick={onSelectAll} className="flex-none text-xs font-medium text-brand-600 hover:text-brand-700">
+                            Select all
+                        </button>
+                        <button type="button" onClick={onClearSelection} className="flex-none text-xs text-text-muted hover:text-text-primary">
+                            Clear
+                        </button>
+                        <span className="flex-none text-xs text-text-muted">
+                            {selectedDocumentIds.length} selected
+                        </span>
+                    </>
+                )}
 
                 <button
                     type="button"

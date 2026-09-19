@@ -65,16 +65,27 @@ export async function upsertChunkVectors(chunks: ChunkVector[]): Promise<void> {
   });
 }
 
-export async function searchSimilarChunks(embedding: number[], userId: string, limit = DEFAULT_TOP_K): Promise<SimilarChunkResult[]> {
+export async function searchSimilarChunks(
+  embedding: number[],
+  userId: string,
+  documentIds: string[],
+  limit = DEFAULT_TOP_K
+): Promise<SimilarChunkResult[]> {
   if (embedding.length === 0 || embedding.some((value) => !Number.isFinite(value))) throw new Error('Invalid query embedding');
 
   if (!Number.isInteger(limit) || limit <= 0) throw new RangeError('Search limit must be a positive integer');
+  if (documentIds.length === 0) throw new RangeError('At least one document is required');
 
   // Restrict search to the authenticated user's vectors to prevent cross-user data access.
   const response = await qdrantClient.query(QDRANT_COLLECTION, {
     query: embedding,
     limit,
-    filter: { must: [{ key: 'userId', match: { value: userId } }] },
+    filter: {
+      must: [
+        { key: 'userId', match: { value: userId } },
+        { key: 'documentId', match: { any: documentIds } }
+      ]
+    },
     with_payload: true
   });
 

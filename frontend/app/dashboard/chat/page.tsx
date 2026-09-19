@@ -46,6 +46,7 @@ export default function DocsChatPage() {
     const [input, setInput] = useState("");
     const [isSending, setIsSending] = useState(false);
     const [documents, setDocuments] = useState<DocSource[]>([]);
+    const [selectedDocumentIds, setSelectedDocumentIds] = useState<string[]>([]);
     const [documentsLoading, setDocumentsLoading] = useState(true);
     const [uploading, setUploading] = useState(false);
     const [conversationId, setConversationId] = useState<string | null>(null);
@@ -78,6 +79,7 @@ export default function DocsChatPage() {
                 if (!cancelled) {
                     setConversationId(requestedConversationId);
                     setMessages(response.messages.map(toChatMessage));
+                    setSelectedDocumentIds(response.conversation.selectedDocumentIds);
                 }
             })
             .catch((error: unknown) => {
@@ -125,6 +127,10 @@ export default function DocsChatPage() {
     // Event handlers
     async function runQuery(query: string) {
         if (!query.trim() || documents.length === 0 || !token || isSending) return;
+        if (selectedDocumentIds.length === 0) {
+            toast.error("No documents selected. Please select at least one document to ask questions.");
+            return;
+        }
 
         const question = query.trim();
         const optimisticMessageId = `pending-${Date.now()}`;
@@ -144,7 +150,11 @@ export default function DocsChatPage() {
                 router.replace(`/dashboard/chat?conversationId=${activeConversationId}`);
             }
 
-            const result = await queryDocuments({ conversationId: activeConversationId, question }, token);
+            const result = await queryDocuments({
+                conversationId: activeConversationId,
+                question,
+                documentIds: selectedDocumentIds,
+            }, token);
             setMessages((previous) => previous.map((message) => message.id === optimisticMessageId
                 ? { id: result.messages.user.id, role: "user" as const, content: question, createdAt: result.messages.user.createdAt }
                 : message
@@ -200,8 +210,18 @@ export default function DocsChatPage() {
         );
     }
 
-    function removeDocument(id: string) {
-        setDocuments((previous) => previous.filter((document) => document.id !== id));
+    function toggleDocument(id: string) {
+        setSelectedDocumentIds((previous) =>
+            previous.includes(id) ? previous.filter((documentId) => documentId !== id) : [...previous, id],
+        );
+    }
+
+    function selectAllDocuments() {
+        setSelectedDocumentIds(documents.map((document) => document.id));
+    }
+
+    function clearDocumentSelection() {
+        setSelectedDocumentIds([]);
     }
 
     async function handleFilesPicked(event: ChangeEvent<HTMLInputElement>) {
@@ -234,6 +254,7 @@ export default function DocsChatPage() {
     async function startNewChat() {
         setMessages([]);
         setConversationId(null);
+        setSelectedDocumentIds([]);
         setInput("");
         router.push("/dashboard/chat");
     }
@@ -242,10 +263,13 @@ export default function DocsChatPage() {
         <div className={`-my-4 sm:-my-6 lg:-my-8 flex ${CHAT_HEIGHT_CLASS} flex-col bg-background text-text-primary`}>
             <ChatDocumentToolbar
                 documents={documents}
+                selectedDocumentIds={selectedDocumentIds}
                 authLoading={authLoading || conversationLoading}
                 uploading={uploading}
                 fileInputRef={fileInputRef}
-                onRemoveDocument={removeDocument}
+                onToggleDocument={toggleDocument}
+                onSelectAll={selectAllDocuments}
+                onClearSelection={clearDocumentSelection}
                 onFilesPicked={handleFilesPicked}
                 onNewChat={startNewChat}
             />
@@ -265,6 +289,7 @@ export default function DocsChatPage() {
                 authLoading={authLoading}
                 documentsLoading={documentsLoading || conversationLoading}
                 hasDocuments={documents.length > 0}
+                hasSelectedDocuments={selectedDocumentIds.length > 0}
                 isSending={isSending}
                 uploading={uploading}
                 textareaRef={textareaRef}

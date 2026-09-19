@@ -5,7 +5,8 @@ const conversationSummary = {
   id: true,
   title: true,
   createdAt: true,
-  updatedAt: true
+  updatedAt: true,
+  selectedDocumentIds: true
 } as const;
 
 const findOwnedConversation = async (userId: string, id: string) => {
