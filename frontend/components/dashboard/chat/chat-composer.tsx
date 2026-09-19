@@ -1,6 +1,6 @@
 "use client";
 
-import { Paperclip, Send } from "lucide-react";
+import { Send } from "lucide-react";
 import type { ChangeEvent, FormEvent, KeyboardEvent, RefObject } from "react";
 
 type ChatComposerProps = {
@@ -25,12 +25,10 @@ export function ChatComposer({
     hasDocuments,
     hasSelectedDocuments,
     isSending,
-    uploading,
     textareaRef,
     onInputChange,
     onKeyDown,
     onSubmit,
-    onAttach,
 }: ChatComposerProps) {
     return (
         <form onSubmit={onSubmit} className="flex-none border-t border-border bg-surface px-4 py-3 sm:px-6 lg:px-8">
