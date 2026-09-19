@@ -1,5 +1,4 @@
 import type { NextFunction, Request, Response } from 'express';
-import { removeStoredFile } from './file-storage.js';
 import {
   createDocument,
   createDocumentChunks,
@@ -9,6 +8,7 @@ import {
   getDocumentStats,
   listDocuments,
   renameDocument,
+  setDocumentStoragePath,
 } from './document.service.js';
 import { documentIdSchema, renameDocumentSchema, uploadDocumentFieldsSchema } from './document.schemas.js';
 import { DocumentError } from './document.errors.js';
@@ -20,12 +20,14 @@ import {
   upsertChunkVectors,
 } from '../../infrastructure/vector-store/qdrant.service.js';
 import { prisma } from '../../config/prisma.js';
+import { deleteDocument as deleteSupabaseDocument, uploadDocument } from '../../infrastructure/storage/supabase.storage.service.js';
+import { removeStoredFile } from './file.localdisk.storage.js';
 
 
 export const upload = async (request: Request, response: Response, next: NextFunction) => {
-  let documentCreated = false;
   let createdDocumentId: string | null = null;
   let createdChunkIds: string[] = [];
+  let storagePath: string | null = null;
 
   try {
     if (!request.file) {
@@ -36,7 +38,6 @@ export const upload = async (request: Request, response: Response, next: NextFun
     const result = await createDocument(request.userId, request.file, fields.name);
     const documentId = result.document.id;
     createdDocumentId = documentId;
-    documentCreated = true;
 
     // Extract, clean, chunk, and generate embeddings for the uploaded document.
     const filePath = request.file.path;
@@ -68,6 +69,16 @@ export const upload = async (request: Request, response: Response, next: NextFun
     // Store embeddings in Qdrant for semantic similarity search.
     await upsertChunkVectors(chunkVectors);
 
+    storagePath = await uploadDocument(
+      request.file.path,
+      request.userId,
+      documentId,
+      request.file.originalname,
+      request.file.mimetype
+    );
+    await setDocumentStoragePath(documentId, storagePath);
+    await removeStoredFile(request.file.path);
+
     logger.info(
       {
         documentId: createdDocumentId,
@@ -88,8 +99,8 @@ export const upload = async (request: Request, response: Response, next: NextFun
       await prisma.document.delete({ where: { id: createdDocumentId } }).catch(() => undefined);
     }
 
-    if (request.file && !documentCreated) {
-      await removeStoredFile(request.file.path).catch(() => undefined);
+    if (storagePath) {
+      await deleteSupabaseDocument(storagePath).catch(() => undefined);
     }
 
     next(error);

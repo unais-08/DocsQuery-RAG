@@ -2,7 +2,8 @@ import { randomUUID } from 'node:crypto';
 import { prisma } from '../../config/prisma.js';
 import type { TextChunk } from '../../infrastructure/document-processing/chunking/text-chunker.js';
 import { DocumentError } from './document.errors.js';
-import { removeStoredFile } from './file-storage.js';
+import { removeStoredFile } from './file.localdisk.storage.js';
+import { deleteDocument as deleteSupabaseDocument } from '../../infrastructure/storage/supabase.storage.service.js';
 
 // Keep API responses consistent and avoid exposing internal document fields.
 const documentSummary = {
@@ -44,7 +45,7 @@ export const createDocument = async (
         originalFileName: file.originalname,
         fileType: file.mimetype,
         fileSize: file.size,
-        filePath: file.path
+        filePath: null
       },
       select: { ...documentSummary, originalFileName: true }
     });
@@ -60,6 +61,13 @@ export const createDocument = async (
     await removeStoredFile(file.path);
     throw error;
   }
+};
+
+export const setDocumentStoragePath = async (documentId: string, storagePath: string) => {
+  await prisma.document.update({
+    where: { id: documentId },
+    data: { storagePath }
+  });
 };
 
 export const listDocuments = async (userId: string) => {
@@ -114,17 +122,15 @@ export const deleteDocument = async (userId: string, id: string) => {
     throw new DocumentError('Document not found', 404, 'DOCUMENT_NOT_FOUND');
   }
 
-  await prisma.document.delete({ where: { id: document.id } });
-  try {
-    // Delete the physical file after removing its database record.
-    await removeStoredFile(document.filePath);
-  } catch {
-    throw new DocumentError(
-      'Document record was deleted, but its file could not be removed',
-      500,
-      'FILE_DELETE_FAILED'
-    );
+  if (document.storagePath) {
+    await deleteSupabaseDocument(document.storagePath);
   }
+
+  if (document.filePath) {
+    await removeStoredFile(document.filePath);
+  }
+
+  await prisma.document.delete({ where: { id: document.id } });
 };
 
 export interface DocumentChunkRecord {

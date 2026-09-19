@@ -14,7 +14,7 @@ TypeScript and Express API for the QueryDocs document Q&A platform. The backend 
 npm install
 copy .env.example .env
 
-# Edit .env and set GEMINI_API_KEY, QDRANT_URL, and QDRANT_API_KEY.
+# Edit .env and set GEMINI_API_KEY, QDRANT_URL, QDRANT_API_KEY, SUPABASE_URL, and SUPABASE_SERVICE_ROLE_KEY.
 docker compose up -d postgres
 npm run db:generate
 npm run db:deploy
@@ -25,7 +25,7 @@ On macOS or Linux, use `cp .env.example .env` instead of `copy .env.example .env
 
 The API listens on `http://localhost:8080` by default, unless `PORT` is changed in the environment configuration.
 
-The server validates the environment on startup. `GEMINI_API_KEY`, `QDRANT_URL`, and `QDRANT_API_KEY` must be set before starting the API. The default Qdrant configuration expects a reachable Qdrant instance; Docker Compose only starts PostgreSQL.
+The server validates the environment on startup. `GEMINI_API_KEY`, `QDRANT_URL`, `QDRANT_API_KEY`, `SUPABASE_URL`, and `SUPABASE_SERVICE_ROLE_KEY` must be set before starting the API. The default Qdrant configuration expects a reachable Qdrant instance; Docker Compose only starts PostgreSQL.
 
 ## Environment configuration
 
@@ -35,6 +35,7 @@ The available variables are documented in `.env.example`. Common settings includ
 - `CLIENT_ORIGIN` sets the allowed browser origin (default `http://localhost:3000`).
 - `UPLOAD_DIR` sets the local upload directory (default `./uploads`).
 - `MAX_FILE_SIZE_MB` limits uploaded files (default `10`).
+- `SUPABASE_URL` and `SUPABASE_SERVICE_ROLE_KEY` configure the private `documents` Storage bucket. The service-role key is backend-only and must not be exposed to the frontend.
 - `JWT_SECRET` must be at least 32 characters and should be replaced in production.
 - `LLM_PROVIDER` selects the answer-generation provider: `gemini`, `groq`, `openai`, or `ollama`.
 - `GEMINI_API_KEY`, `GROQ_API_KEY`, `GROQ_MODEL`, `OPENAI_API_KEY`, `OPENAI_MODEL`, `OLLAMA_BASE_URL`, and `OLLAMA_MODEL` configure answer generation. Groq uses its OpenAI-compatible API; its default model is `llama-3.3-70b-versatile`. Ollama is the free local option and requires Ollama to be installed with the selected model pulled.
@@ -138,7 +139,7 @@ All document routes require a valid bearer token.
   ```
 - `DELETE /api/v1/documents/:id` deletes the document record and removes the stored file.
 
-Uploaded files are stored locally in `UPLOAD_DIR` (default `./uploads`) with generated filenames. The storage layer is isolated in `src/modules/documents/file-storage.ts` so it can later be replaced with cloud storage without changing the document API.
+Uploaded files are temporarily stored in `UPLOAD_DIR` (default `./uploads`) while extraction, chunking, and embedding complete. The original file is then uploaded to the private Supabase `documents` bucket under `userId/documentId/originalFileName`; only that Storage key is persisted for new documents.
 
 ### Queries
 

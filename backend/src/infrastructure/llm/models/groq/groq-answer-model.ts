@@ -2,8 +2,8 @@ import OpenAI from 'openai';
 
 import { env } from '../../../../config/env.js';
 import type { AnswerModel } from '../../answer-model.js';
+import { GROQ_BASE_URL } from '../../llm.constants.js';
 
-const GROQ_BASE_URL = 'https://api.groq.com/openai/v1';
 
 export class GroqAnswerModel implements AnswerModel {
   private readonly client: OpenAI;

@@ -1,7 +1,7 @@
 import type { Request, Response, NextFunction } from "express";
 import multer from "multer";
 import { DocumentError } from "../modules/documents/document.errors.js";
-import { documentUpload } from "../modules/documents/file-storage.js";
+import { documentUpload } from "../modules/documents/file.localdisk.storage.js";
 
 export const handleDocumentUpload = (
   request: Request,

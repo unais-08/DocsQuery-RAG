@@ -2,6 +2,7 @@ import crypto from 'node:crypto';
 import { mkdir, unlink } from 'node:fs/promises';
 import path from 'node:path';
 import multer from 'multer';
+
 import { env } from '../../config/env.js';
 import { DocumentError } from './document.errors.js';
 
@@ -36,7 +37,7 @@ export const documentUpload = multer({
     const expectedExtension = allowedTypes.get(file.mimetype);
 
     if (!expectedExtension || extension !== expectedExtension) {
-      callback(new DocumentError('Only PDF and DOCX files are supported', 415, 'UNSUPPORTED_FILE_TYPE'));
+      callback(new DocumentError('Only TXT, PDF and DOCX files are supported', 415, 'UNSUPPORTED_FILE_TYPE'));
       return;
     }
 
