@@ -8,6 +8,7 @@ export type ConversationSummary = {
     title: string;
     createdAt: string;
     updatedAt: string;
+    selectedDocumentIds: string[];
 };
 
 export type ConversationListItem = ConversationSummary & { messageCount: number };
