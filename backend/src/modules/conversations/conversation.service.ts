@@ -9,6 +9,34 @@ const conversationSummary = {
   selectedDocumentIds: true
 } as const;
 
+interface ConversationWithMessageCount {
+  id: string;
+  title: string | null;
+  createdAt: Date;
+  updatedAt: Date;
+  selectedDocumentIds: string[];
+  _count: {
+    messages: number;
+  };
+}
+
+interface CreatedConversation {
+  id: string;
+  title: string | null;
+  createdAt: Date;
+  updatedAt: Date;
+  selectedDocumentIds: string[];
+}
+
+interface ConversationListItem {
+  id: string;
+  title: string | null;
+  createdAt: Date;
+  updatedAt: Date;
+  selectedDocumentIds: string[];
+  messageCount: number;
+}
+
 const findOwnedConversation = async (userId: string, id: string) => {
   const conversation = await prisma.conversation.findFirst({
     where: { id, userId },
@@ -26,7 +54,7 @@ export const createConversation = (userId: string) =>
   prisma.conversation.create({
     data: { userId },
     select: conversationSummary
-  }).then((conversation) => ({ conversation }));
+  }).then((conversation: CreatedConversation): { conversation: CreatedConversation } => ({ conversation }));
 
 export const listConversations = async (userId: string) => {
   const conversations = await prisma.conversation.findMany({
@@ -36,9 +64,13 @@ export const listConversations = async (userId: string) => {
   });
 
   return {
-    conversations: conversations.map(({ _count, ...conversation }) => ({
-      ...conversation,
-      messageCount: _count.messages
+    conversations: conversations.map((conversation: ConversationWithMessageCount): ConversationListItem => ({
+      id: conversation.id,
+      title: conversation.title,
+      createdAt: conversation.createdAt,
+      updatedAt: conversation.updatedAt,
+      selectedDocumentIds: conversation.selectedDocumentIds,
+      messageCount: conversation._count.messages
     }))
   };
 };
