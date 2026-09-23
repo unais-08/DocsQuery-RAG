@@ -7,7 +7,7 @@ export type EmbeddingGenerator = (text: string) => Promise<number[]>;
 
 export async function generateEmbedding(text: string): Promise<number[]> {
   try {
-    // Convert text into a 1536-dimensional vector for semantic search in Qdrant.
+    // Convert text into a 1536-dimensional vector for semantic search in Supabase pgvector.
     const response = await geminiClient.models.embedContent({ model: 'gemini-embedding-2', contents: text, config: { outputDimensionality: 1536 } });
     const embedding = response.embeddings?.[0]?.values;
 

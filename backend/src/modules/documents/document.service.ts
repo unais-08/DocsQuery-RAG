@@ -167,7 +167,7 @@ export const createDocumentChunks = async (
 
   const records = buildDocumentChunkRecords(documentId, userId, chunks);
 
-  // Store chunk text and metadata in PostgreSQL; embeddings are stored separately in Qdrant.
+  // Store chunk text and metadata in PostgreSQL; embeddings are stored in Supabase pgvector.
   await prisma.documentChunk.createMany({
     data: records.map(({ id, documentId, userId, chunkIndex, text, pageNumber }) => ({
       id,

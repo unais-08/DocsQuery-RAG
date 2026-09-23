@@ -18,7 +18,7 @@ import {
   deleteChunkVectorsById,
   deleteChunkVectorsForDocument,
   upsertChunkVectors,
-} from '../../infrastructure/vector-store/qdrant.service.js';
+} from '../../infrastructure/vector-store/supabase.vector.service.js';
 import { prisma } from '../../config/prisma.js';
 import { deleteDocument as deleteSupabaseDocument, uploadDocument } from '../../infrastructure/storage/supabase.storage.service.js';
 import { removeStoredFile } from './file.localdisk.storage.js';
@@ -43,7 +43,7 @@ export const upload = async (request: Request, response: Response, next: NextFun
     const filePath = request.file.path;
     const processedDocument = await documentProcessingService.extractAndChunk(filePath);
 
-    // Store chunk text in PostgreSQL; vectors are stored separately in Qdrant.
+    // Store chunk text in PostgreSQL; vectors are stored in Supabase pgvector.
     const storedChunks = await createDocumentChunks(documentId, request.userId, processedDocument.chunks);
     createdChunkIds = storedChunks.map((chunk) => chunk.id);
 
@@ -66,7 +66,7 @@ export const upload = async (request: Request, response: Response, next: NextFun
       };
     });
 
-    // Store embeddings in Qdrant for semantic similarity search.
+    // Store embeddings in Supabase pgvector for semantic similarity search.
     await upsertChunkVectors(chunkVectors);
 
     storagePath = await uploadDocument(
@@ -91,7 +91,7 @@ export const upload = async (request: Request, response: Response, next: NextFun
 
     response.status(201).json(result);
   } catch (error) {
-    // Roll back PostgreSQL, Qdrant, and file data if ingestion fails midway.
+    // Roll back PostgreSQL, vector, and file data if ingestion fails midway.
     if (createdDocumentId) {
       await deleteChunkVectorsById(createdChunkIds).catch(() => undefined);
       await deleteChunkVectorsForDocument(createdDocumentId, request.userId).catch(() => undefined);
@@ -139,7 +139,7 @@ export const remove = async (request: Request, response: Response, next: NextFun
     const documentId = documentIdSchema.parse(request.params.id);
 
     // Remove the document's embeddings before deleting its database record.
-    // This keeps Qdrant from retaining vectors that no longer have source text.
+    // This keeps vectors from remaining after their source text is deleted.
     await deleteChunkVectorsForDocument(documentId, request.userId);
     await deleteDocument(request.userId, documentId);
     response.status(204).send();

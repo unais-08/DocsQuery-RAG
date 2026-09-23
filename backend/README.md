@@ -14,10 +14,10 @@ TypeScript and Express API for the QueryDocs document Q&A platform. The backend 
 npm install
 copy .env.example .env
 
-# Edit .env and set GEMINI_API_KEY, QDRANT_URL, QDRANT_API_KEY, SUPABASE_URL, and SUPABASE_SERVICE_ROLE_KEY.
-docker compose up -d postgres
+# Edit .env and set GEMINI_API_KEY, SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, and SUPABASE_STORAGE_BUCKET_NAME.
 npm run db:generate
-npm run db:deploy
+npm run db:push
+# Run prisma/supabase-vector.sql in the Supabase SQL Editor.
 npm run dev
 ```
 
@@ -25,7 +25,7 @@ On macOS or Linux, use `cp .env.example .env` instead of `copy .env.example .env
 
 The API listens on `http://localhost:8080` by default, unless `PORT` is changed in the environment configuration.
 
-The server validates the environment on startup. `GEMINI_API_KEY`, `QDRANT_URL`, `QDRANT_API_KEY`, `SUPABASE_URL`, and `SUPABASE_SERVICE_ROLE_KEY` must be set before starting the API. The default Qdrant configuration expects a reachable Qdrant instance; Docker Compose only starts PostgreSQL.
+The server validates the environment on startup. `GEMINI_API_KEY`, `SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY`, and `SUPABASE_STORAGE_BUCKET_NAME` must be set before starting the API. Supabase provides both PostgreSQL and pgvector; Docker Compose only starts PostgreSQL.
 
 ## Environment configuration
 
@@ -39,7 +39,7 @@ The available variables are documented in `.env.example`. Common settings includ
 - `JWT_SECRET` must be at least 32 characters and should be replaced in production.
 - `LLM_PROVIDER` selects the answer-generation provider: `gemini`, `groq`, `openai`, or `ollama`.
 - `GEMINI_API_KEY`, `GROQ_API_KEY`, `GROQ_MODEL`, `OPENAI_API_KEY`, `OPENAI_MODEL`, `OLLAMA_BASE_URL`, and `OLLAMA_MODEL` configure answer generation. Groq uses its OpenAI-compatible API; its default model is `llama-3.3-70b-versatile`. Ollama is the free local option and requires Ollama to be installed with the selected model pulled.
-- `QDRANT_URL` and `QDRANT_API_KEY` configure vector search. Gemini is still used for embeddings.
+- Supabase pgvector stores and searches the 1536-dimensional Gemini embeddings. After `npm run db:push`, run [`prisma/supabase-vector.sql`](prisma/supabase-vector.sql) once in the Supabase SQL Editor to create the vector table, RPC function, and HNSW index.
 
 
 ## PostgreSQL and Prisma
@@ -50,17 +50,19 @@ Start the local database:
 docker compose up -d postgres
 ```
 
-Create or update the database schema:
+Create a fresh database schema:
 
 ```bash
 npm run db:generate
-npm run db:deploy
+npm run db:push
 ```
 
-During schema changes, use:
+Then run `prisma/supabase-vector.sql` in the Supabase SQL Editor. This project does not use Prisma migration history for a fresh database setup.
+
+For future schema changes on this fresh database, use:
 
 ```bash
-npm run db:migrate -- --name describe-change
+npm run db:push
 ```
 
 ## Logging
@@ -84,8 +86,7 @@ Request logs stay intentionally minimal and should never include request bodies,
 - `npm run typecheck` runs strict TypeScript validation without emitting files.
 - `npm test` runs the project test suite using Node's built-in test runner with `tsx`.
 - `npm run db:generate` generates the Prisma client.
-- `npm run db:migrate` creates a new Prisma migration.
-- `npm run db:deploy` applies checked-in migrations to the database.
+- `npm run db:push` synchronizes the Prisma schema directly to a fresh database.
 - `npm run db:studio` opens Prisma Studio.
 
 ## API endpoints
@@ -164,7 +165,7 @@ src/
   modules/      Feature modules with routes, controllers, validation, and services
   infrastructure/
                 Document processing, embeddings, provider-neutral answer generation,
-                Gemini, OpenAI, and Ollama adapters, and Qdrant integrations
+                Gemini, OpenAI, and Ollama adapters, and Supabase pgvector integration
   types/        Shared TypeScript types
 prisma/
   schema.prisma

@@ -29,10 +29,7 @@ const environmentSchema = z.object({
 
   SUPABASE_URL: z.string().url(),
   SUPABASE_SERVICE_ROLE_KEY: z.string().min(1),
-  SUPABASE_STORAGE_BUCKET_NAME: z.string().min(1),
-
-  QDRANT_URL: z.string().url(),
-  QDRANT_API_KEY: z.string().min(1)
+  SUPABASE_STORAGE_BUCKET_NAME: z.string().min(1)
 });
 
 export const env = environmentSchema.parse(process.env);

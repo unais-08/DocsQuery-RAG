@@ -4,6 +4,8 @@ import { Copy, MessageSquare, RefreshCw, Sparkles, ThumbsDown, ThumbsUp } from "
 import type { RefObject } from "react";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
+import rehypeRaw from "rehype-raw";
+import rehypeSanitize, { defaultSchema } from "rehype-sanitize";
 
 import type { ChatMessage, Feedback } from "./chat-types";
 
@@ -19,6 +21,14 @@ type ChatMessagesProps = {
 
 const markdownClasses =
     "text-sm leading-relaxed text-text-primary [&_a]:text-docs-blue-600 [&_a]:underline [&_blockquote]:my-3 [&_blockquote]:border-l-2 [&_blockquote]:border-border [&_blockquote]:pl-3 [&_code]:rounded [&_code]:bg-background [&_code]:px-1 [&_code]:py-0.5 [&_code]:font-mono [&_code]:text-[0.9em] [&_h1]:mb-3 [&_h1]:mt-5 [&_h1]:text-lg [&_h1]:font-semibold [&_h2]:mb-2 [&_h2]:mt-4 [&_h2]:text-base [&_h2]:font-semibold [&_h3]:mb-2 [&_h3]:mt-3 [&_h3]:font-semibold [&_li]:my-1 [&_ol]:my-3 [&_ol]:list-decimal [&_ol]:pl-5 [&_p]:my-2 [&_pre]:my-3 [&_pre]:overflow-x-auto [&_pre]:rounded-docs-sm [&_pre]:bg-background [&_pre]:p-3 [&_pre]:font-mono [&_pre]:text-xs [&_strong]:font-semibold [&_ul]:my-3 [&_ul]:list-disc [&_ul]:pl-5";
+
+// Allow <br> (and a few other harmless tags the model might emit) on top of
+// the default sanitize schema, while still stripping anything dangerous
+// (script tags, event handlers, javascript: URLs, etc).
+const sanitizeSchema = {
+    ...defaultSchema,
+    tagNames: [...(defaultSchema.tagNames ?? []), "br"],
+};
 
 export function ChatMessages({
     messages,
@@ -83,12 +93,17 @@ function ChatMessageItem({
             </div>
             <div className="min-w-0 flex-1">
                 <div className={markdownClasses}>
-                    <ReactMarkdown remarkPlugins={[remarkGfm]}>{message.content}</ReactMarkdown>
+                    <ReactMarkdown
+                        remarkPlugins={[remarkGfm]}
+                        rehypePlugins={[rehypeRaw, [rehypeSanitize, sanitizeSchema]]}
+                    >
+                        {message.content}
+                    </ReactMarkdown>
                 </div>
 
                 {message.sources && message.sources.length > 0 && (
                     <MessageSources
-                        sources={message.sources}
+                        sources={dedupeSources(message.sources)}
                         isOpen={message.sourcesOpen ?? false}
                         onToggle={() => onToggleSources(message.id)}
                     />
@@ -103,6 +118,22 @@ function ChatMessageItem({
             </div>
         </div>
     );
+}
+
+// Collapse sources that point at the same document + page (the retriever
+// can return several chunks from the same page), so the UI shows each
+// document/page once instead of once per chunk.
+function dedupeSources(
+    sources: NonNullable<ChatMessage["sources"]>
+): NonNullable<ChatMessage["sources"]> {
+    const seen = new Map<string, NonNullable<ChatMessage["sources"]>[number]>();
+    for (const source of sources) {
+        const key = `${source.documentName}::${source.pageNumber ?? ""}`;
+        if (!seen.has(key)) {
+            seen.set(key, source);
+        }
+    }
+    return Array.from(seen.values());
 }
 
 function MessageSources({
@@ -124,13 +155,19 @@ function MessageSources({
                 {isOpen ? "Hide sources" : `View sources (${sources.length})`}
             </button>
             {isOpen && (
-                <ul className="mt-2 space-y-1">
-                    {sources.map((source,idx) => (
-                        <li 
+                <ul className="mt-2 space-y-1.5" aria-label="Sources">
+                    {sources.map((source, idx) => (
+                        <li
                             key={source.chunkId + idx}
-                            className="rounded-docs-sm bg-docs-blue-50 px-2.5 py-1 text-xs text-docs-blue-700"
+                            className="flex items-center gap-2 rounded-docs-sm border border-docs-blue-100 bg-docs-blue-50/70 px-2.5 py-1.5 text-xs text-docs-blue-700"
                         >
-                            {source.documentName}{source.pageNumber ? `, p. ${source.pageNumber}` : ""}
+                            <span className="flex h-5 w-5 flex-none items-center justify-center rounded-full bg-white text-[10px] font-semibold text-docs-blue-600 ring-1 ring-docs-blue-100">
+                                {idx + 1}
+                            </span>
+                            <span className="min-w-0 truncate" title={source.documentName}>
+                                {source.documentName}
+                                {source.pageNumber ? ` · Page ${source.pageNumber}` : ""}
+                            </span>
                         </li>
                     ))}
                 </ul>
