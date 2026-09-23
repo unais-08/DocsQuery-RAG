@@ -5,7 +5,7 @@ import { generateAnswer } from "../../infrastructure/llm/generate.answer.js";
 import {
     searchSimilarChunks,
     type SimilarChunkResult,
-} from "../../infrastructure/vector-store/qdrant.service.js";
+} from "../../infrastructure/vector-store/supabase.vector.service.js";
 import { buildContext } from "./context-builder.js";
 import { assertConversationOwnership } from "../conversations/conversation.service.js";
 import { DocumentError } from "../documents/document.errors.js";
@@ -39,7 +39,7 @@ export const getChunksForQueryResults = async (
         return [];
     }
 
-    // Qdrant returns the most similar chunk IDs; fetch the actual text and metadata from Postgres.
+    // Supabase returns the most similar chunk IDs; fetch the actual text and metadata from Postgres.
     const chunks = (await prisma.documentChunk.findMany({
         where: {
             id: { in: results.map((result) => result.chunkId) },
@@ -110,7 +110,7 @@ export const queryDocuments = async (
     const questionEmbedding = await generateEmbedding(question);
 
     logger.debug(`now goes to searchSimilarChunks with embedding of length ${questionEmbedding.length} for userId: ${userId}`);
-    // Qdrant filtering and the Postgres ownership check both enforce user isolation.
+    // The vector RPC filtering and the Postgres ownership check both enforce user isolation.
     const results = await searchSimilarChunks(questionEmbedding, userId, documentIds);
     const retrievedChunks = await getChunksForQueryResults(results, userId);
     const context = buildContext(retrievedChunks);
