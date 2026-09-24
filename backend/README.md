@@ -1,179 +1,204 @@
 # QueryDocs Backend
 
-TypeScript and Express API for the QueryDocs document Q&A platform. The backend handles authentication, document uploads, local file storage, and Prisma-backed persistence for user and document records.
+The backend for QueryDocs, a document question-and-answer application. It is a TypeScript Express API that provides authentication, document processing, semantic search, AI-generated answers, conversations, and dashboard statistics.
 
 ## Requirements
 
-- Node.js 20+ (22 LTS recommended)
-- PostgreSQL running locally or in Docker
-- Docker Compose for the local database container
+- Node.js 20 or later
+- PostgreSQL 16 or a compatible PostgreSQL database
+- A Supabase project for Storage and vector search
+- A Gemini API key for embeddings and the default answer provider
+- Docker Desktop is optional and provides the PostgreSQL container used by the included Compose file
 
-## Quick start
+## Setup
 
-```bash
-npm install
-copy .env.example .env
+1. Install dependencies:
 
-# Edit .env and set GEMINI_API_KEY, SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, and SUPABASE_STORAGE_BUCKET_NAME.
-npm run db:generate
-npm run db:push
-# Run prisma/supabase-vector.sql in the Supabase SQL Editor.
-npm run dev
+   ```bash
+   npm install
+   ```
+
+2. Create an environment file:
+
+   Windows PowerShell:
+
+   ```powershell
+   Copy-Item .env.example .env
+   ```
+
+   macOS/Linux:
+
+   ```bash
+   cp .env.example .env
+   ```
+
+3. Set the required values in `.env`: `GEMINI_API_KEY`, `SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY`, and `SUPABASE_STORAGE_BUCKET_NAME`. The service-role key is backend-only and must never be exposed to the frontend.
+
+4. Start PostgreSQL with Docker, or point `DATABASE_URL` at an existing PostgreSQL database:
+
+   ```bash
+   docker compose up -d postgres
+   ```
+
+5. Generate Prisma Client and apply the Prisma schema:
+
+   ```bash
+   npm run db:generate
+   npm run db:push
+   ```
+
+6. Run [`prisma/supabase-vector.sql`](prisma/supabase-vector.sql) in the Supabase SQL Editor. This creates the vector storage table, similarity-search function, and HNSW index used by document queries.
+
+7. Start the development server:
+
+   ```bash
+   npm run dev
+   ```
+
+The API listens on `http://localhost:8080` by default. The host, port, API prefix, and other defaults are defined in [`src/config/env.ts`](src/config/env.ts).
+
+## Environment variables
+
+All supported variables are listed in [`.env.example`](.env.example).
+
+| Variable | Purpose | Default or requirement |
+| --- | --- | --- |
+| `NODE_ENV` | Runtime environment | `development` |
+| `LOG_LEVEL` | Pino log level | `info` |
+| `HOST` | Server bind address | `0.0.0.0` |
+| `PORT` | HTTP port | `8080` |
+| `API_PREFIX` | API route prefix | `/api/v1` |
+| `CLIENT_ORIGIN` | Allowed CORS origin | `http://localhost:3000` |
+| `DATABASE_URL` | PostgreSQL connection string | Local Docker database URL |
+| `JWT_SECRET` | JWT signing secret | Development fallback; use a unique secret of at least 32 characters in production |
+| `JWT_EXPIRES_IN` | JWT lifetime | `1h` |
+| `UPLOAD_DIR` | Temporary upload directory | ./Dir_name |
+| `MAX_FILE_SIZE_MB` | Maximum upload size | `10` |
+| `LLM_PROVIDER` | Answer provider | `gemini` or `groq` |
+| `GEMINI_MODEL` | Gemini answer model | `gemini-3.6-flash` |
+| `GEMINI_API_KEY` | Gemini API credential | Required |
+| `GROQ_MODEL` | Groq answer model | `MODEL_NAME` |
+| `GROQ_API_KEY` | Groq API credential | Required when `LLM_PROVIDER=groq` |
+| `GROQ_BASE_URL` | Groq API base URL | Required |
+| `SUPABASE_URL` | Supabase project URL | Required |
+| `SUPABASE_SERVICE_ROLE_KEY` | Server-side Supabase credential | Required |
+| `SUPABASE_STORAGE_BUCKET_NAME` | Private document bucket | Required |
+
+The server validates configuration when it starts. Embeddings always use Gemini's `gemini-embedding-2` model with 1536 output dimensions, regardless of the answer-generation provider.
+
+## Database and storage
+
+The Prisma schema stores users, documents, document chunks, conversations, and chat messages in PostgreSQL. The included [`docker-compose.yml`](docker-compose.yml) starts PostgreSQL with:
+
+- Database: `querydocs`
+- User: `postgres`
+- Password: `postgres`
+- Port: `5432`
+
+The local upload directory is temporary. During document processing, the API extracts text, cleans it, splits it into chunks, generates embeddings, and uploads the original file to the configured private Supabase Storage bucket. Stored files use the path `userId/documentId/originalFileName`.
+
+## API
+
+Unless stated otherwise, protected endpoints require:
+
+```http
+Authorization: Bearer <token>
 ```
 
-On macOS or Linux, use `cp .env.example .env` instead of `copy .env.example .env`.
+The default prefix is `/api/v1`; replace it below when `API_PREFIX` is changed.
 
-The API listens on `http://localhost:8080` by default, unless `PORT` is changed in the environment configuration.
+### Health and metadata
 
-The server validates the environment on startup. `GEMINI_API_KEY`, `SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY`, and `SUPABASE_STORAGE_BUCKET_NAME` must be set before starting the API. Supabase provides both PostgreSQL and pgvector; Docker Compose only starts PostgreSQL.
-
-## Environment configuration
-
-The available variables are documented in `.env.example`. Common settings include:
-
-- `API_PREFIX` sets the API base path (default `/api/v1`).
-- `CLIENT_ORIGIN` sets the allowed browser origin (default `http://localhost:3000`).
-- `UPLOAD_DIR` sets the local upload directory (default `./uploads`).
-- `MAX_FILE_SIZE_MB` limits uploaded files (default `10`).
-- `SUPABASE_URL` and `SUPABASE_SERVICE_ROLE_KEY` configure the private `documents` Storage bucket. The service-role key is backend-only and must not be exposed to the frontend.
-- `JWT_SECRET` must be at least 32 characters and should be replaced in production.
-- `LLM_PROVIDER` selects the answer-generation provider: `gemini`, `groq`, `openai`, or `ollama`.
-- `GEMINI_API_KEY`, `GROQ_API_KEY`, `GROQ_MODEL`, `OPENAI_API_KEY`, `OPENAI_MODEL`, `OLLAMA_BASE_URL`, and `OLLAMA_MODEL` configure answer generation. Groq uses its OpenAI-compatible API; its default model is `llama-3.3-70b-versatile`. Ollama is the free local option and requires Ollama to be installed with the selected model pulled.
-- Supabase pgvector stores and searches the 1536-dimensional Gemini embeddings. After `npm run db:push`, run [`prisma/supabase-vector.sql`](prisma/supabase-vector.sql) once in the Supabase SQL Editor to create the vector table, RPC function, and HNSW index.
-
-
-## PostgreSQL and Prisma
-
-Start the local database:
-
-```bash
-docker compose up -d postgres
-```
-
-Create a fresh database schema:
-
-```bash
-npm run db:generate
-npm run db:push
-```
-
-Then run `prisma/supabase-vector.sql` in the Supabase SQL Editor. This project does not use Prisma migration history for a fresh database setup.
-
-For future schema changes on this fresh database, use:
-
-```bash
-npm run db:push
-```
-
-## Logging
-
-The backend uses Pino for structured request and app logging. Set `LOG_LEVEL` to `trace`, `debug`, `info`, `warn`, `error`, `fatal`, or `silent`.
-
-Application code should use the logger from `src/config/logger.ts`:
-
-- `logger.info`
-- `logger.warn`
-- `logger.error`
-- `logger.debug`
-
-Request logs stay intentionally minimal and should never include request bodies, passwords, tokens, or other sensitive data.
-
-## Scripts
-
-- `npm run dev` starts the Express server with file watching via `tsx watch`.
-- `npm run build` compiles the TypeScript source into `dist`.
-- `npm start` runs the compiled server from `dist/server.js`.
-- `npm run typecheck` runs strict TypeScript validation without emitting files.
-- `npm test` runs the project test suite using Node's built-in test runner with `tsx`.
-- `npm run db:generate` generates the Prisma client.
-- `npm run db:push` synchronizes the Prisma schema directly to a fresh database.
-- `npm run db:studio` opens Prisma Studio.
-
-## API endpoints
-
-### Health
-
-- `GET /` returns API metadata.
-- `GET /api/v1/health/live` checks that the HTTP server is running.
+| Method | Endpoint | Authentication | Description |
+| --- | --- | --- | --- |
+| `GET` | `/` | No | Returns API metadata and the live health URL |
+| `GET` | `/api/v1/health/live` | No | Confirms that the HTTP server is running |
 
 ### Authentication
 
-All auth routes are mounted under `/api/v1/auth`.
+| Method | Endpoint | Description |
+| --- | --- | --- |
+| `POST` | `/api/v1/auth/register` | Creates an account |
+| `POST` | `/api/v1/auth/login` | Authenticates an account and returns a token |
+| `GET` | `/api/v1/auth/me` | Returns the authenticated user |
 
-- `POST /api/v1/auth/register` creates a user account.
-  Request body:
-  ```json
-  {
-    "name": "Jane Doe",
-    "email": "jane@example.com",
-    "password": "secure-password"
-  }
-  ```
-- `POST /api/v1/auth/login` authenticates a user.
-  Request body:
-  ```json
-  {
-    "email": "jane@example.com",
-    "password": "secure-password"
-  }
-  ```
-- `GET /api/v1/auth/me` returns the current authenticated user. Requires `Authorization: Bearer <token>`.
+Registration accepts `name`, `email`, and a password between 8 and 72 characters. Login accepts `email` and `password`.
 
 ### Documents
 
-All document routes require a valid bearer token.
+All document endpoints are protected.
 
-- `POST /api/v1/documents` uploads a file as multipart form data.
-  - Form field is `file`.
-  - Optional form field is `name`.
-  - Supported file types are `.txt`, `.pdf`, and `.docx`.
-  - The maximum file size is controlled by `MAX_FILE_SIZE_MB`.
-- `GET /api/v1/documents` lists the authenticated user's documents and count.
-- `GET /api/v1/documents/stats` returns the authenticated user's document count.
-- `GET /api/v1/documents/:id` fetches one document owned by the user.
-- `PATCH /api/v1/documents/:id` renames a document.
-  Request body:
-  ```json
-  {
-    "name": "New document name"
-  }
-  ```
-- `DELETE /api/v1/documents/:id` deletes the document record and removes the stored file.
+| Method | Endpoint | Description |
+| --- | --- | --- |
+| `POST` | `/api/v1/documents` | Uploads one `.txt`, `.pdf`, or `.docx` file as multipart field `file`; optional field: `name` |
+| `GET` | `/api/v1/documents` | Lists the user's documents |
+| `GET` | `/api/v1/documents/stats` | Returns the user's document statistics |
+| `GET` | `/api/v1/documents/:id` | Returns one owned document |
+| `PATCH` | `/api/v1/documents/:id` | Renames a document with `{ "name": "New name" }` |
+| `DELETE` | `/api/v1/documents/:id` | Deletes a document and its stored file |
 
-Uploaded files are temporarily stored in `UPLOAD_DIR` (default `./uploads`) while extraction, chunking, and embedding complete. The original file is then uploaded to the private Supabase `documents` bucket under `userId/documentId/originalFileName`; only that Storage key is persisted for new documents.
+The upload limit is controlled by `MAX_FILE_SIZE_MB` and defaults to 10 MB.
 
-### Queries
+### Conversations and queries
 
-All query routes require a valid bearer token.
+All conversation and query endpoints are protected.
 
-- `POST /api/v1/query` asks a question against the authenticated user's document chunks.
-  Request body:
-  ```json
-  {
-    "question": "What does this document say?"
-  }
-  ```
+| Method | Endpoint | Description |
+| --- | --- | --- |
+| `POST` | `/api/v1/conversations` | Creates a conversation |
+| `GET` | `/api/v1/conversations` | Lists the user's conversations |
+| `GET` | `/api/v1/conversations/:id` | Returns a conversation and its messages |
+| `PATCH` | `/api/v1/conversations/:id` | Renames a conversation with `{ "title": "New title" }` |
+| `DELETE` | `/api/v1/conversations/:id` | Deletes a conversation |
+| `POST` | `/api/v1/query` | Answers a question using selected documents |
 
-If Gemini or the embedding service is unavailable, the API returns `503 Service Unavailable` with the error code `AI_SERVICE_UNAVAILABLE`. Clients can retry the request later; provider details are logged on the server and are not returned to clients.
+Query requests must include a conversation ID, a question of up to 2,000 characters, and one or more unique document IDs:
+
+```json
+{
+  "conversationId": "conversation-id",
+  "question": "What does this document say?",
+  "documentIds": ["document-id"]
+}
+```
+
+### Dashboard
+
+| Method | Endpoint | Description |
+| --- | --- | --- |
+| `GET` | `/api/v1/dashboard/stats` | Returns authenticated-user dashboard statistics |
+
+## Scripts
+
+| Command | Description |
+| --- | --- |
+| `npm run dev` | Starts the development server with `tsx watch` |
+| `npm run build` | Compiles TypeScript to `dist` |
+| `npm start` | Runs `dist/server.js` |
+| `npm run typecheck` | Runs TypeScript checks without emitting files |
+| `npm test` | Runs tests with Node's built-in test runner and `tsx` |
+| `npm run db:generate` | Generates Prisma Client |
+| `npm run db:push` | Synchronizes the Prisma schema with the database |
+| `npm run db:studio` | Opens Prisma Studio |
 
 ## Project structure
 
 ```text
 src/
-  config/       Environment parsing, Prisma setup, and logging
-  middleware/   Express middleware, auth checks, and error handling
-  modules/      Feature modules with routes, controllers, validation, and services
-  infrastructure/
-                Document processing, embeddings, provider-neutral answer generation,
-                Gemini, OpenAI, and Ollama adapters, and Supabase pgvector integration
-  types/        Shared TypeScript types
+  config/                 Environment, Prisma, and logging configuration
+  infrastructure/         Document processing, AI providers, storage, and vector search
+  middleware/             Authentication, uploads, rate limiting, logging, and errors
+  modules/                Auth, documents, conversations, dashboard, health, and query features
+  types/                  Express type declarations
 prisma/
-  schema.prisma
-  migrations/
+  schema.prisma            PostgreSQL data model
+  supabase-vector.sql      Supabase pgvector setup
+uploads/
+  .gitkeep                 Temporary local upload directory
 ```
 
-## Notes
+## Logging and production notes
 
-- The live endpoint only confirms that the HTTP server is running.
-- The application does not expose secret values in logs or responses.
-- Production deployments should use a strong, unique `JWT_SECRET` and a secure PostgreSQL connection string.
+The API uses Pino for structured logging. Valid `LOG_LEVEL` values are `trace`, `debug`, `info`, `warn`, `error`, `fatal`, and `silent`. Request logging intentionally excludes bodies, passwords, tokens, and other sensitive values.
+
+For production, use a strong unique `JWT_SECRET`, secure database credentials, private Supabase Storage, restricted CORS origins, and appropriately managed API keys. Do not commit `.env` or expose `SUPABASE_SERVICE_ROLE_KEY` to clients.
